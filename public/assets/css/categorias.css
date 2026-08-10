@@ -1,0 +1,224 @@
+.categories-layout {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+
+    gap: 25px;
+    align-items: start;
+}
+
+
+/* FORMULÁRIO */
+
+.category-form-card,
+.categories-card {
+    background: #ffffff;
+
+    border: 1px solid var(--border);
+    border-radius: 12px;
+
+    box-shadow: var(--shadow);
+}
+
+.category-form-card {
+    padding: 25px;
+}
+
+.category-form-card h2,
+.categories-card h2 {
+    font-size: 17px;
+    font-weight: 600;
+}
+
+.category-form-card > p,
+.categories-card-header p {
+    margin-top: 5px;
+
+    color: var(--text-light);
+
+    font-size: 12px;
+}
+
+.category-form-card form {
+    margin-top: 25px;
+}
+
+.category-submit {
+    width: 100%;
+
+    margin-top: 20px;
+
+    gap: 7px;
+}
+
+
+/* LISTAGEM */
+
+.categories-card {
+    overflow: hidden;
+}
+
+.categories-card-header {
+    padding: 22px 25px;
+
+    border-bottom: 1px solid var(--border);
+}
+
+.categories-table table {
+    width: 100%;
+
+    border-collapse: collapse;
+}
+
+.categories-table th {
+    padding: 14px 20px;
+
+    background: #fafafa;
+
+    text-align: left;
+
+    color: var(--text-light);
+
+    font-size: 11px;
+    font-weight: 600;
+
+    text-transform: uppercase;
+}
+
+.categories-table td {
+    padding: 16px 20px;
+
+    border-top: 1px solid var(--border);
+
+    font-size: 13px;
+}
+
+
+/* CATEGORIA */
+
+.category-name {
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
+}
+
+.category-icon {
+    width: 36px;
+    height: 36px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 9px;
+
+    background: #fbeaea;
+
+    color: var(--primary);
+}
+
+.category-name strong {
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.category-count {
+    display: inline-flex;
+
+    padding: 5px 10px;
+
+    background: #f3f4f6;
+
+    border-radius: 20px;
+
+    color: #6b7280;
+
+    font-size: 11px;
+    font-weight: 500;
+}
+
+
+@media (max-width: 950px) {
+
+    .categories-layout {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+/* =========================
+   AÇÕES
+========================= */
+
+.category-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.category-action {
+    width: 34px;
+    height: 34px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid transparent;
+    border-radius: 8px;
+
+    text-decoration: none;
+
+    font-size: 14px;
+
+    transition: .2s;
+}
+
+
+/* EDITAR */
+
+.category-action.edit {
+    background: #f3f4f6;
+    border-color: #e5e7eb;
+
+    color: #4b5563;
+}
+
+.category-action.edit:hover {
+    background: #e5e7eb;
+    color: #111827;
+
+    transform: translateY(-1px);
+}
+
+
+/* EXCLUIR */
+
+.category-action.delete {
+    background: #fff1f1;
+    border-color: #f5d5d5;
+
+    color: var(--primary);
+}
+
+.category-action.delete:hover {
+    background: var(--primary);
+    border-color: var(--primary);
+
+    color: #fff;
+
+    transform: translateY(-1px);
+}
+
+
+/* EDITAR CATEGORIA */
+
+.category-edit-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+
+    gap: 10px;
+
+    margin-top: 25px;
+}

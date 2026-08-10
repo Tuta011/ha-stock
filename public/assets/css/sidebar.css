@@ -36,7 +36,7 @@
 
     border-radius:14px;
 
-    object-fit:cover;
+    object-fit:contain;
 
 }
 
@@ -60,40 +60,36 @@
 
 }
 
-.sidebar a{
+.sidebar a {
+    text-decoration: none;
 
-    text-decoration:none;
+    color: #ddd;
 
-    color:#ddd;
+    display: flex;
 
-    display:flex;
+    align-items: center;
 
-    align-items:center;
+    gap: 14px;
 
-    gap:14px;
+    padding: 14px;
 
-    padding:14px;
+    border-radius: 12px;
 
-    border-radius:12px;
-
-    transition:.3s;
-
+    transition: .3s;
 }
 
-.sidebar a:hover{
 
-    background:var(--primary);
+.sidebar a:hover {
+    background: var(--primary);
 
-    color:white;
-
+    color: white;
 }
 
-.sidebar .active a{
 
-    background:var(--primary);
+.sidebar a.active {
+    background: var(--primary);
 
-    color:white;
-
+    color: white;
 }
 
 .sidebar i{

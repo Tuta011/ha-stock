@@ -1,7 +1,23 @@
-.content{
+.content {
+    margin-left: 260px;
 
-    margin-left:260px;
+    padding: 105px 35px 40px;
 
-    padding:40px;
+    min-height: 100vh;
+}
 
+.page-header {
+    margin-bottom: 30px;
+}
+
+.page-header h1 {
+    font-size: 32px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 5px;
+}
+
+.page-header p {
+    color: var(--text-light);
+    font-size: 15px;
 }
