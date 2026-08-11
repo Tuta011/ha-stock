@@ -1,12 +1,13 @@
 <?php
 
 $host = '127.0.0.1';
+$port = '3307';
 $dbname = 'ha_stock';
-$user = 'root';
-$password = '';
+$user = 'ha_stock_app';
+$password = 'Isa160407@@';
 $charset = 'utf8mb4';
 
-$dsn = "mysql:host=$host;dbname=$dbname;charset=$charset";
+$dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=$charset";
 
 $options = [
     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
