@@ -1,0 +1,625 @@
+/* =========================
+   RESUMO DOS RELATÓRIOS
+========================= */
+
+.reports-summary {
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+
+    gap: 18px;
+
+    margin-top: 25px;
+}
+
+
+/* =========================
+   CARD
+========================= */
+
+.report-card {
+    display: flex;
+    align-items: center;
+
+    gap: 15px;
+
+    min-height: 120px;
+
+    padding: 20px;
+
+    background: #ffffff;
+
+    border: 1px solid #e8e8e8;
+    border-radius: 12px;
+
+    box-shadow:
+        0 3px 12px
+        rgba(0, 0, 0, 0.03);
+}
+
+
+/* =========================
+   ÍCONE
+========================= */
+
+.report-card-icon {
+    width: 46px;
+    height: 46px;
+
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 10px;
+
+    font-size: 19px;
+}
+
+
+/* ENTRADA */
+
+.report-card-icon.entry {
+    background: #e8f7ee;
+    color: #16834a;
+}
+
+
+/* SAÍDA */
+
+.report-card-icon.exit {
+    background: #feecec;
+    color: #c62828;
+}
+
+
+/* PRODUTOS */
+
+.report-card-icon.products {
+    background: #edf3ff;
+    color: #3b67b2;
+}
+
+
+/* ESTOQUE BAIXO */
+
+.report-card-icon.warning {
+    background: #fff5df;
+    color: #d4860b;
+}
+
+
+/* =========================
+   INFORMAÇÕES
+========================= */
+
+.report-card-info {
+    min-width: 0;
+}
+
+.report-card-info span {
+    display: block;
+
+    color: #6b7280;
+
+    font-size: 11px;
+}
+
+.report-card-info strong {
+    display: block;
+
+    margin-top: 4px;
+
+    color: #20242a;
+
+    font-size: 22px;
+    font-weight: 600;
+}
+
+.report-card-info small {
+    display: block;
+
+    margin-top: 2px;
+
+    color: #9ca3af;
+
+    font-size: 9px;
+}
+
+
+/* =========================
+   RESPONSIVO
+========================= */
+
+@media (max-width: 1100px) {
+
+    .reports-summary {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+}
+
+
+@media (max-width: 650px) {
+
+    .reports-summary {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+/* =========================
+   FILTRO POR PERÍODO
+========================= */
+
+.reports-filter-card {
+    margin-top: 24px;
+    margin-bottom: 18px;
+
+    padding: 18px 20px;
+
+    background: #fff;
+
+    border: 1px solid #e8e8e8;
+    border-radius: 12px;
+}
+
+
+.reports-filter {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+
+    gap: 20px;
+}
+
+
+.reports-filter-title {
+    display: flex;
+    align-items: center;
+
+    gap: 11px;
+
+    min-width: 230px;
+}
+
+
+.reports-filter-title > i {
+    width: 38px;
+    height: 38px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 9px;
+
+    background: #fff1f1;
+    color: var(--primary);
+
+    font-size: 16px;
+}
+
+
+.reports-filter-title strong {
+    display: block;
+
+    color: #20242a;
+
+    font-size: 13px;
+    font-weight: 600;
+}
+
+
+.reports-filter-title span {
+    display: block;
+
+    margin-top: 2px;
+
+    color: #9ca3af;
+
+    font-size: 9px;
+}
+
+
+.reports-filter-fields {
+    display: flex;
+    align-items: flex-end;
+
+    gap: 10px;
+}
+
+
+.reports-date-field {
+    display: flex;
+    flex-direction: column;
+
+    gap: 5px;
+}
+
+
+.reports-date-field label {
+    color: #6b7280;
+
+    font-size: 10px;
+    font-weight: 500;
+}
+
+
+.reports-date-field input {
+    height: 38px;
+
+    padding: 0 12px;
+
+    border: 1px solid var(--border);
+    border-radius: 7px;
+
+    background: #fff;
+
+    font-family: inherit;
+    font-size: 11px;
+
+    outline: none;
+}
+
+
+.reports-date-field input:focus {
+    border-color: var(--primary);
+}
+
+
+.reports-filter-button {
+    margin: 0;
+}
+
+
+.reports-clear-filter {
+    margin: 0;
+}
+
+
+/* =========================
+   TABELA DO RELATÓRIO
+========================= */
+
+.reports-table-card {
+    margin-top: 20px;
+
+    padding: 20px;
+
+    background: #fff;
+
+    border: 1px solid #e8e8e8;
+    border-radius: 12px;
+}
+
+
+.reports-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    margin-bottom: 18px;
+}
+
+
+.reports-section-header h2 {
+    margin: 0;
+
+    color: #20242a;
+
+    font-size: 15px;
+    font-weight: 600;
+}
+
+
+.reports-section-header p {
+    margin-top: 3px;
+
+    color: #9ca3af;
+
+    font-size: 10px;
+}
+
+
+.reports-result-count {
+    padding: 5px 10px;
+
+    border-radius: 20px;
+
+    background: #f3f4f6;
+
+    color: #6b7280;
+
+    font-size: 10px;
+    font-weight: 500;
+}
+
+
+.report-product {
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+}
+
+
+.report-product-icon {
+    width: 30px;
+    height: 30px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 7px;
+
+    background: #fff1f1;
+    color: var(--primary);
+}
+
+
+.report-product strong {
+    display: block;
+
+    font-size: 11px;
+    font-weight: 500;
+}
+
+
+.report-product small {
+    display: block;
+
+    margin-top: 2px;
+
+    color: #9ca3af;
+
+    font-size: 9px;
+}
+
+
+.report-quantity.entry {
+    color: #16834a;
+}
+
+
+.report-quantity.exit {
+    color: #c62828;
+}
+
+
+/* =========================
+   RESPONSIVO
+========================= */
+
+@media (max-width: 1000px) {
+
+    .reports-filter {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .reports-filter-fields {
+        flex-wrap: wrap;
+    }
+
+}
+
+
+@media (max-width: 650px) {
+
+    .reports-filter-fields {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .reports-date-field input {
+        width: 100%;
+    }
+
+}
+
+/* =========================
+   PRODUTOS MAIS CONSUMIDOS
+========================= */
+
+.reports-ranking-card {
+    margin-top: 20px;
+
+    padding: 20px;
+
+    background: #fff;
+
+    border: 1px solid #e8e8e8;
+    border-radius: 12px;
+}
+
+
+.reports-ranking-title-icon {
+    color: #d4860b;
+
+    font-size: 20px;
+}
+
+
+/* LISTA */
+
+.reports-ranking-list {
+    display: flex;
+    flex-direction: column;
+}
+
+
+/* ITEM */
+
+.reports-ranking-item {
+    display: flex;
+    align-items: center;
+
+    gap: 14px;
+
+    padding: 14px 4px;
+
+    border-bottom: 1px solid #f1f1f1;
+
+    text-decoration: none;
+
+    transition: .2s;
+}
+
+.reports-ranking-item:last-child {
+    border-bottom: none;
+}
+
+.reports-ranking-item:hover {
+    background: #fafafa;
+}
+
+
+/* POSIÇÃO */
+
+.reports-ranking-position {
+    width: 30px;
+    height: 30px;
+
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50%;
+
+    background: #f3f4f6;
+
+    color: #6b7280;
+
+    font-size: 11px;
+    font-weight: 600;
+}
+
+
+.reports-ranking-item:nth-child(1)
+.reports-ranking-position {
+    background: #fff5df;
+    color: #d4860b;
+}
+
+
+.reports-ranking-item:nth-child(2)
+.reports-ranking-position {
+    background: #f1f3f5;
+    color: #6b7280;
+}
+
+
+.reports-ranking-item:nth-child(3)
+.reports-ranking-position {
+    background: #fcefe8;
+    color: #b36b35;
+}
+
+
+/* PRODUTO */
+
+.reports-ranking-product {
+    flex: 1;
+
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+}
+
+
+.reports-ranking-icon {
+    width: 34px;
+    height: 34px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 8px;
+
+    background: #fff1f1;
+    color: var(--primary);
+}
+
+
+.reports-ranking-product strong {
+    display: block;
+
+    color: #20242a;
+
+    font-size: 11px;
+    font-weight: 600;
+}
+
+
+.reports-ranking-product small {
+    display: block;
+
+    margin-top: 2px;
+
+    color: #9ca3af;
+
+    font-size: 9px;
+}
+
+
+/* VALOR */
+
+.reports-ranking-value {
+    text-align: right;
+}
+
+
+.reports-ranking-value strong {
+    display: block;
+
+    color: #c62828;
+
+    font-size: 12px;
+    font-weight: 600;
+}
+
+
+.reports-ranking-value span {
+    display: block;
+
+    margin-top: 2px;
+
+    color: #9ca3af;
+
+    font-size: 9px;
+}
+
+
+.reports-ranking-item > i {
+    color: #b6bac1;
+
+    font-size: 11px;
+}
+
+
+/* SEM DADOS */
+
+.reports-ranking-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 8px;
+
+    padding: 35px;
+
+    color: #9ca3af;
+
+    font-size: 11px;
+}

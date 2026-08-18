@@ -277,3 +277,40 @@ td {
 .empty-dashboard i {
     margin-right: 6px;
 }
+
+/* =========================
+   ALERTAS DE ESTOQUE
+========================= */
+
+.stock-alert-badge.critical {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.stock-view-button {
+    width: 34px;
+    height: 34px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid #dce7ff;
+    border-radius: 8px;
+
+    background: #eef4ff;
+    color: #3b6fd8;
+
+    text-decoration: none;
+
+    transition: .2s;
+}
+
+.stock-view-button:hover {
+    background: #3b6fd8;
+    border-color: #3b6fd8;
+
+    color: #fff;
+
+    transform: translateY(-1px);
+}

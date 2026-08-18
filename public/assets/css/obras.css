@@ -1,0 +1,180 @@
+.works-layout {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+
+    gap: 24px;
+
+    align-items: start;
+}
+
+
+.work-form-card,
+.works-card {
+    background: #fff;
+
+    border: 1px solid var(--border);
+    border-radius: 12px;
+
+    box-shadow: var(--shadow);
+}
+
+
+.work-form-card {
+    padding: 24px;
+}
+
+
+.work-form-card h2,
+.works-card h2 {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+
+.work-form-card > p,
+.works-card-header p {
+    margin-top: 4px;
+
+    color: var(--text-light);
+
+    font-size: 11px;
+}
+
+
+.work-form-card form {
+    margin-top: 22px;
+}
+
+
+.work-submit {
+    width: 100%;
+
+    margin-top: 18px;
+}
+
+
+.works-card {
+    overflow: hidden;
+}
+
+
+.works-card-header {
+    padding: 20px 24px;
+
+    border-bottom: 1px solid var(--border);
+}
+
+
+.works-table table {
+    width: 100%;
+
+    border-collapse: collapse;
+}
+
+
+.works-table th {
+    padding: 14px 18px;
+
+    background: #fafafa;
+
+    color: var(--text-light);
+
+    text-align: left;
+
+    font-size: 10px;
+    font-weight: 600;
+
+    text-transform: uppercase;
+}
+
+
+.works-table td {
+    padding: 15px 18px;
+
+    border-top: 1px solid var(--border);
+
+    font-size: 12px;
+}
+
+
+.work-name {
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+}
+
+
+.work-icon {
+    width: 36px;
+    height: 36px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 9px;
+
+    background: #fff1f1;
+    color: var(--primary);
+}
+
+
+.work-name strong {
+    display: block;
+
+    font-size: 12px;
+    font-weight: 600;
+}
+
+
+.work-name small {
+    display: block;
+
+    margin-top: 2px;
+
+    color: var(--text-light);
+
+    font-size: 9px;
+}
+
+
+/* STATUS */
+
+.work-status {
+    display: inline-flex;
+
+    padding: 5px 10px;
+
+    border-radius: 20px;
+
+    font-size: 10px;
+    font-weight: 600;
+}
+
+
+.work-status.active {
+    background: #e8f7ee;
+    color: #16834a;
+}
+
+
+.work-status.finished {
+    background: #eef4ff;
+    color: #3b6fd8;
+}
+
+
+.work-status.cancelled {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+
+@media (max-width: 1000px) {
+
+    .works-layout {
+        grid-template-columns: 1fr;
+    }
+
+}

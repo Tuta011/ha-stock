@@ -240,3 +240,363 @@
     color: var(--text-light);
 
 }
+
+/* =========================
+   NOTIFICAÇÕES
+========================= */
+
+.notification-wrapper {
+    position: relative;
+}
+
+
+/* =========================
+   BOTÃO SINO
+========================= */
+
+.notification-button {
+    position: relative;
+
+    width: 38px;
+    height: 38px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: none;
+    border-radius: 8px;
+
+    background: transparent;
+
+    color: var(--text);
+
+    font-size: 20px;
+
+    cursor: pointer;
+
+    transition: .2s;
+}
+
+.notification-button:hover {
+    background: #f3f4f6;
+
+    color: var(--primary);
+}
+
+
+/* =========================
+   CONTADOR
+========================= */
+
+.notification-badge {
+    position: absolute;
+
+    top: -3px;
+    right: -3px;
+
+    min-width: 17px;
+    height: 17px;
+
+    padding: 0 4px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 20px;
+
+    background: var(--primary);
+
+    color: #ffffff;
+
+    font-size: 9px;
+    font-weight: 600;
+
+    border: 2px solid #ffffff;
+}
+
+
+/* =========================
+   DROPDOWN
+========================= */
+
+.notification-dropdown {
+    position: absolute;
+
+    top: calc(100% + 16px);
+    right: -10px;
+
+    width: 370px;
+
+    background: #ffffff;
+
+    border: 1px solid var(--border);
+    border-radius: 12px;
+
+    box-shadow:
+        0 15px 40px
+        rgba(0, 0, 0, 0.12);
+
+    overflow: hidden;
+
+    opacity: 0;
+    visibility: hidden;
+
+    transform: translateY(-8px);
+
+    transition: .2s ease;
+
+    z-index: 2000;
+}
+
+
+/* DROPDOWN ABERTO */
+
+.notification-dropdown.active {
+    opacity: 1;
+    visibility: visible;
+
+    transform: translateY(0);
+}
+
+
+/* =========================
+   CABEÇALHO DROPDOWN
+========================= */
+
+.notification-dropdown-header {
+    padding: 17px 18px;
+
+    border-bottom:
+        1px solid
+        var(--border);
+}
+
+.notification-dropdown-header strong {
+    display: block;
+
+    color: var(--text);
+
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.notification-dropdown-header span {
+    display: block;
+
+    margin-top: 3px;
+
+    color: var(--text-light);
+
+    font-size: 11px;
+}
+
+
+/* =========================
+   LISTA DE ALERTAS
+========================= */
+
+.notification-list {
+    max-height: 330px;
+
+    overflow-y: auto;
+}
+
+
+/* =========================
+   ITEM
+========================= */
+
+.notification-item {
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
+
+    padding: 14px 16px;
+
+    border-bottom:
+        1px solid
+        #f1f1f1;
+
+    text-decoration: none;
+
+    transition: .2s;
+}
+
+.notification-item:last-child {
+    border-bottom: none;
+}
+
+.notification-item:hover {
+    background: #fafafa;
+}
+
+
+/* =========================
+   ÍCONE ALERTA
+========================= */
+
+.notification-item-icon {
+    width: 38px;
+    height: 38px;
+
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 9px;
+
+    background: #fff7e6;
+
+    color: #d97706;
+
+    font-size: 16px;
+}
+
+
+/* CRÍTICO */
+
+.notification-item-icon.critical {
+    background: #fee2e2;
+
+    color: #b91c1c;
+}
+
+
+/* =========================
+   INFORMAÇÕES
+========================= */
+
+.notification-item-info {
+    flex: 1;
+
+    min-width: 0;
+}
+
+.notification-item-info strong {
+    display: block;
+
+    overflow: hidden;
+
+    color: var(--text);
+
+    font-size: 12px;
+    font-weight: 600;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+}
+
+.notification-item-info span {
+    display: block;
+
+    margin-top: 3px;
+
+    color: var(--text-light);
+
+    font-size: 10px;
+}
+
+
+/* SETA */
+
+.notification-item > i {
+    color: #b6bac1;
+
+    font-size: 11px;
+}
+
+
+/* =========================
+   SEM ALERTAS
+========================= */
+
+.notification-empty {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    gap: 8px;
+
+    padding: 35px 20px;
+
+    color: #16834a;
+
+    font-size: 12px;
+
+    text-align: center;
+}
+
+.notification-empty i {
+    font-size: 24px;
+}
+
+
+/* =========================
+   RODAPÉ
+========================= */
+
+.notification-dropdown-footer {
+    padding: 12px 16px;
+
+    border-top:
+        1px solid
+        var(--border);
+
+    text-align: center;
+}
+
+.notification-dropdown-footer a {
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 6px;
+
+    color: var(--primary);
+
+    text-decoration: none;
+
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.notification-dropdown-footer a:hover {
+    text-decoration: underline;
+}
+
+
+/* =========================
+   RESPONSIVO
+========================= */
+
+@media (max-width: 600px) {
+
+    .notification-dropdown {
+        position: fixed;
+
+        top: 70px;
+        right: 15px;
+        left: 15px;
+
+        width: auto;
+    }
+
+}
+
+.notification-item-info small {
+    display: block;
+
+    margin-top: 3px;
+
+    color: #9ca3af;
+
+    font-size: 9px;
+}

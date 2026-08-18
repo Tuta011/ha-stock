@@ -232,3 +232,206 @@
     font-size: 13px;
     font-weight: 500;
 }
+
+/* =========================
+   DESTINO DO MATERIAL
+========================= */
+
+.stock-destination-options {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+
+    gap: 12px;
+
+    margin-top: 7px;
+}
+
+
+.stock-destination-card {
+    position: relative;
+
+    cursor: pointer;
+}
+
+
+.stock-destination-card input {
+    position: absolute;
+
+    opacity: 0;
+    pointer-events: none;
+}
+
+
+.stock-destination-content {
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
+
+    min-height: 78px;
+
+    padding: 14px;
+
+    background: #fff;
+
+    border: 1px solid var(--border);
+    border-radius: 10px;
+
+    transition: .2s;
+}
+
+
+.stock-destination-card:hover
+.stock-destination-content {
+    border-color: #d6d6d6;
+
+    background: #fafafa;
+}
+
+
+.stock-destination-card input:checked
++ .stock-destination-content {
+    border-color: var(--primary);
+
+    background: #fff8f8;
+
+    box-shadow:
+        0 0 0 1px
+        var(--primary);
+}
+
+
+.stock-destination-icon {
+    width: 42px;
+    height: 42px;
+
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 9px;
+
+    font-size: 17px;
+}
+
+
+.stock-destination-icon.general {
+    background: #edf3ff;
+    color: #3b67b2;
+}
+
+
+.stock-destination-icon.work {
+    background: #fff1f1;
+    color: var(--primary);
+}
+
+
+.stock-destination-content strong {
+    display: block;
+
+    color: #20242a;
+
+    font-size: 12px;
+    font-weight: 600;
+}
+
+
+.stock-destination-content span {
+    display: block;
+
+    margin-top: 3px;
+
+    color: #9ca3af;
+
+    font-size: 9px;
+}
+
+
+/* =========================
+   CLIENTE / OBRA
+========================= */
+
+.work-destination-fields {
+    display: none;
+
+    padding: 18px;
+
+    background: #fafafa;
+
+    border: 1px solid #eeeeee;
+    border-radius: 10px;
+}
+
+
+.work-destination-fields.active {
+    display: block;
+}
+
+
+.work-destination-header {
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    margin-bottom: 16px;
+}
+
+
+.work-destination-header > i {
+    width: 36px;
+    height: 36px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 8px;
+
+    background: #fff1f1;
+    color: var(--primary);
+
+    font-size: 15px;
+}
+
+
+.work-destination-header strong {
+    display: block;
+
+    color: #20242a;
+
+    font-size: 12px;
+    font-weight: 600;
+}
+
+
+.work-destination-header span {
+    display: block;
+
+    margin-top: 2px;
+
+    color: #9ca3af;
+
+    font-size: 9px;
+}
+
+
+.work-destination-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+
+    gap: 15px;
+}
+
+
+@media (max-width: 700px) {
+
+    .stock-destination-options,
+    .work-destination-grid {
+        grid-template-columns: 1fr;
+    }
+
+}

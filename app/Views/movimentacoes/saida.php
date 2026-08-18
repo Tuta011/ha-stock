@@ -2,6 +2,16 @@
 
 require_once '../../Config/database.php';
 
+$produtoSelecionado = filter_input(
+    INPUT_GET,
+    'produto_id',
+    FILTER_VALIDATE_INT
+);
+
+if (!$produtoSelecionado) {
+    $produtoSelecionado = '';
+}
+
 $erro = '';
 
 /* Buscar produtos ativos com saldo atual */
@@ -148,14 +158,14 @@ include '../../Includes/sidebar.php';
 ?>
 
 <main class="content">
-    
+
     <?php if ($erro): ?>
 
-    <div class="alert-error">
-        <?= htmlspecialchars($erro) ?>
-    </div>
+        <div class="alert-error">
+            <?= htmlspecialchars($erro) ?>
+        </div>
 
-<?php endif; ?>
+    <?php endif; ?>
 
     <div class="page-header">
 
@@ -179,7 +189,9 @@ include '../../Includes/sidebar.php';
 
                 <div class="form-group full">
 
-                    <label for="produto_id">Produto *</label>
+                    <label for="produto_id">
+                        Produto *
+                    </label>
 
                     <select
                         id="produto_id"
@@ -192,14 +204,26 @@ include '../../Includes/sidebar.php';
 
                         <?php foreach ($produtos as $produto): ?>
 
-                            <option value="<?= $produto['id'] ?>">
+                            <option
+                                value="<?= $produto['id'] ?>"
+                                <?= $produtoSelecionado == $produto['id']
+                                    ? 'selected'
+                                    : '' ?>>
 
                                 <?= htmlspecialchars($produto['codigo']) ?>
+
                                 -
+
                                 <?= htmlspecialchars($produto['nome']) ?>
 
                                 (Saldo:
-                                <?= number_format($produto['saldo'], 2, ',', '.') ?>
+                                <?= number_format(
+                                    $produto['saldo'],
+                                    2,
+                                    ',',
+                                    '.'
+                                ) ?>
+
                                 <?= htmlspecialchars($produto['unidade']) ?>)
 
                             </option>

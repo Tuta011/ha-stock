@@ -137,7 +137,6 @@ if ($status === 'baixo') {
     $sql .= "
         HAVING saldo <= p.estoque_minimo
     ";
-
 } elseif ($status === 'normal') {
 
     $sql .= "
@@ -219,8 +218,7 @@ include '../../Includes/sidebar.php';
     <form
         method="GET"
         action="index.php"
-        class="products-filters"
-    >
+        class="products-filters">
 
         <!-- PESQUISA -->
 
@@ -232,8 +230,7 @@ include '../../Includes/sidebar.php';
                 type="text"
                 name="busca"
                 placeholder="Pesquisar produto..."
-                value="<?= htmlspecialchars($busca) ?>"
-            >
+                value="<?= htmlspecialchars($busca) ?>">
 
         </div>
 
@@ -252,8 +249,7 @@ include '../../Includes/sidebar.php';
                     value="<?= $categoria['id'] ?>"
                     <?= $categoriaId == $categoria['id']
                         ? 'selected'
-                        : '' ?>
-                >
+                        : '' ?>>
                     <?= htmlspecialchars($categoria['nome']) ?>
                 </option>
 
@@ -272,15 +268,13 @@ include '../../Includes/sidebar.php';
 
             <option
                 value="normal"
-                <?= $status === 'normal' ? 'selected' : '' ?>
-            >
+                <?= $status === 'normal' ? 'selected' : '' ?>>
                 Estoque normal
             </option>
 
             <option
                 value="baixo"
-                <?= $status === 'baixo' ? 'selected' : '' ?>
-            >
+                <?= $status === 'baixo' ? 'selected' : '' ?>>
                 Estoque baixo
             </option>
 
@@ -291,8 +285,7 @@ include '../../Includes/sidebar.php';
 
         <button
             type="submit"
-            class="filter-button"
-        >
+            class="filter-button">
             <i class="bi bi-funnel"></i>
             Filtrar
         </button>
@@ -308,8 +301,7 @@ include '../../Includes/sidebar.php';
 
             <a
                 href="index.php"
-                class="clear-filter"
-            >
+                class="clear-filter">
                 <i class="bi bi-x-lg"></i>
                 Limpar
             </a>
@@ -345,220 +337,214 @@ include '../../Includes/sidebar.php';
             <tbody>
 
 
-            <?php if (empty($produtos)): ?>
+                <?php if (empty($produtos)): ?>
 
 
-                <!-- NENHUM PRODUTO -->
-
-                <tr>
-
-                    <td
-                        colspan="7"
-                        class="empty-products"
-                    >
-
-                        <i class="bi bi-search"></i>
-
-                        Nenhum produto encontrado.
-
-                    </td>
-
-                </tr>
-
-
-            <?php else: ?>
-
-
-                <?php foreach ($produtos as $produto): ?>
-
-
-                    <?php
-
-                    $saldo = (float) $produto['saldo'];
-
-                    $estoqueMinimo =
-                        (float) $produto['estoque_minimo'];
-
-                    $estoqueBaixo =
-                        $saldo <= $estoqueMinimo;
-
-                    ?>
-
+                    <!-- NENHUM PRODUTO -->
 
                     <tr>
 
-
-                        <!-- CÓDIGO -->
-
-                        <td class="product-code">
-
-                            <?= htmlspecialchars(
-                                $produto['codigo']
-                            ) ?>
-
-                        </td>
-
-
-                        <!-- PRODUTO -->
-
-                        <td>
-
-                            <div class="table-product">
-
-                                <div class="product-icon">
-
-                                    <i class="bi bi-box"></i>
-
-                                </div>
-
-
-                                <span>
-
-                                    <?= htmlspecialchars(
-                                        $produto['nome']
-                                    ) ?>
-
-                                </span>
-
-                            </div>
-
-                        </td>
-
-
-                        <!-- CATEGORIA -->
-
-                        <td>
-
-                            <?= htmlspecialchars(
-                                $produto['categoria'] ?? '-'
-                            ) ?>
-
-                        </td>
-
-
-                        <!-- SALDO -->
-
                         <td
-                            class="
-                                stock-value
-                                <?= $estoqueBaixo
-                                    ? 'stock-low'
-                                    : '' ?>
-                            "
-                        >
+                            colspan="7"
+                            class="empty-products">
 
-                            <?= number_format(
-                                $saldo,
-                                2,
-                                ',',
-                                '.'
-                            ) ?>
+                            <i class="bi bi-search"></i>
+
+                            Nenhum produto encontrado.
 
                         </td>
-
-
-                        <!-- UNIDADE -->
-
-                        <td>
-
-                            <?= htmlspecialchars(
-                                $produto['unidade']
-                            ) ?>
-
-                        </td>
-
-
-                        <!-- STATUS -->
-
-                        <td>
-
-
-                            <?php if ($estoqueBaixo): ?>
-
-
-                                <span
-                                    class="
-                                        stock-status
-                                        status-low
-                                    "
-                                >
-
-                                    Estoque baixo
-
-                                </span>
-
-
-                            <?php else: ?>
-
-
-                                <span
-                                    class="
-                                        stock-status
-                                        status-ok
-                                    "
-                                >
-
-                                    Estoque normal
-
-                                </span>
-
-
-                            <?php endif; ?>
-
-
-                        </td>
-
-
-                        <!-- AÇÕES -->
-
-                        <td>
-
-                            <div class="product-actions">
-
-
-                                <!-- EDITAR -->
-
-                                <a
-                                    href="editar.php?id=<?= $produto['id'] ?>"
-                                    class="action-link edit"
-                                    title="Editar produto"
-                                >
-
-                                    <i class="bi bi-pencil"></i>
-
-                                </a>
-
-
-                                <!-- DESATIVAR -->
-
-                                <a
-                                    href="desativar.php?id=<?= $produto['id'] ?>"
-                                    class="action-link delete"
-                                    title="Desativar produto"
-                                    onclick="
-                                        return confirm(
-                                            'Deseja realmente desativar este produto?'
-                                        );
-                                    "
-                                >
-
-                                    <i class="bi bi-eye-slash"></i>
-
-                                </a>
-
-
-                            </div>
-
-                        </td>
-
 
                     </tr>
 
 
-                <?php endforeach; ?>
+                <?php else: ?>
 
 
-            <?php endif; ?>
+                    <?php foreach ($produtos as $produto): ?>
+
+
+                        <?php
+
+                        $saldo = (float) $produto['saldo'];
+
+                        $estoqueMinimo =
+                            (float) $produto['estoque_minimo'];
+
+                        $estoqueBaixo =
+                            $saldo <= $estoqueMinimo;
+
+                        ?>
+
+
+                        <tr>
+
+
+                            <!-- CÓDIGO -->
+
+                            <td class="product-code">
+
+                                <?= htmlspecialchars(
+                                    $produto['codigo']
+                                ) ?>
+
+                            </td>
+
+
+                            <!-- PRODUTO -->
+
+                            <td>
+
+                                <div class="table-product">
+
+                                    <div class="product-icon">
+
+                                        <i class="bi bi-box"></i>
+
+                                    </div>
+
+
+                                    <span>
+
+                                        <?= htmlspecialchars(
+                                            $produto['nome']
+                                        ) ?>
+
+                                    </span>
+
+                                </div>
+
+                            </td>
+
+
+                            <!-- CATEGORIA -->
+
+                            <td>
+
+                                <?= htmlspecialchars(
+                                    $produto['categoria'] ?? '-'
+                                ) ?>
+
+                            </td>
+
+
+                            <!-- SALDO -->
+
+                            <td
+                                class="
+                                stock-value
+                                <?= $estoqueBaixo
+                                    ? 'stock-low'
+                                    : '' ?>
+                            ">
+
+                                <?= number_format(
+                                    $saldo,
+                                    2,
+                                    ',',
+                                    '.'
+                                ) ?>
+
+                            </td>
+
+
+                            <!-- UNIDADE -->
+
+                            <td>
+
+                                <?= htmlspecialchars(
+                                    $produto['unidade']
+                                ) ?>
+
+                            </td>
+
+
+                            <!-- STATUS -->
+
+                            <td>
+
+
+                                <?php if ($estoqueBaixo): ?>
+
+
+                                    <span
+                                        class="
+                                        stock-status
+                                        status-low
+                                    ">
+
+                                        Estoque baixo
+
+                                    </span>
+
+
+                                <?php else: ?>
+
+
+                                    <span
+                                        class="
+                                        stock-status
+                                        status-ok
+                                    ">
+
+                                        Estoque normal
+
+                                    </span>
+
+
+                                <?php endif; ?>
+
+
+                            </td>
+
+
+                            <!-- AÇÕES -->
+
+                            <td>
+
+                                <div class="product-actions">
+
+                                    <!-- VISUALIZAR -->
+
+                                    <a
+                                        href="detalhes.php?id=<?= $produto['id'] ?>"
+                                        class="action-link view"
+                                        title="Ver detalhes">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+
+
+                                    <!-- EDITAR -->
+
+                                    <a
+                                        href="editar.php?id=<?= $produto['id'] ?>"
+                                        class="action-link edit"
+                                        title="Editar produto">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+
+
+                                    <!-- DESATIVAR -->
+
+                                    <a
+                                        href="desativar.php?id=<?= $produto['id'] ?>"
+                                        class="action-link delete"
+                                        title="Desativar produto"
+                                        onclick="return confirm('Deseja realmente desativar este produto?');">
+                                        <i class="bi bi-eye-slash"></i>
+                                    </a>
+
+                                </div>
+
+                            </td>
+
+
+                        </tr>
+
+
+                    <?php endforeach; ?>
+
+
+                <?php endif; ?>
 
 
             </tbody>

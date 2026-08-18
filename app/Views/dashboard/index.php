@@ -175,9 +175,16 @@ $stmt = $pdo->query("
 
     HAVING saldo <= p.estoque_minimo
 
-    ORDER BY saldo ASC, p.nome ASC
+    ORDER BY
+        CASE
+            WHEN p.estoque_minimo > 0
+                THEN saldo / p.estoque_minimo
+            ELSE 999
+        END ASC,
+        saldo ASC,
+        p.nome ASC
 
-    LIMIT 5
+    LIMIT 10
 ");
 
 $produtosEstoqueBaixo = $stmt->fetchAll();
@@ -342,7 +349,7 @@ include '../../Includes/sidebar.php';
 
 
             <a
-                href="/ha-stock/app/Views/movimentacoes/index.php"
+                href="/HA-Stock/app/Views/movimentacoes/index.php"
                 class="view-all"
             >
 
@@ -532,7 +539,7 @@ include '../../Includes/sidebar.php';
 
 
             <a
-                href="/ha-stock/app/Views/produtos/index.php"
+                href="/HA-Stock/app/Views/produtos/index.php"
                 class="view-all"
             >
 
@@ -557,6 +564,7 @@ include '../../Includes/sidebar.php';
                         <th>Estoque mínimo</th>
                         <th>Localização</th>
                         <th>Status</th>
+                        <th>Ação</th>
                     </tr>
 
                 </thead>
@@ -571,7 +579,7 @@ include '../../Includes/sidebar.php';
                     <tr>
 
                         <td
-                            colspan="5"
+                            colspan="6"
                             class="empty-dashboard"
                         >
 
@@ -588,6 +596,29 @@ include '../../Includes/sidebar.php';
 
 
                     <?php foreach ($produtosEstoqueBaixo as $produto): ?>
+
+
+                        <?php
+
+                        $saldoProduto =
+                            (float) $produto['saldo'];
+
+                        $minimoProduto =
+                            (float) $produto['estoque_minimo'];
+
+
+                        $critico = false;
+
+
+                        if ($minimoProduto > 0) {
+
+                            $critico =
+                                $saldoProduto <=
+                                ($minimoProduto * 0.5);
+
+                        }
+
+                        ?>
 
 
                         <tr>
@@ -633,7 +664,7 @@ include '../../Includes/sidebar.php';
                                 <strong class="stock-alert-value">
 
                                     <?= number_format(
-                                        $produto['saldo'],
+                                        $saldoProduto,
                                         2,
                                         ',',
                                         '.'
@@ -653,7 +684,7 @@ include '../../Includes/sidebar.php';
                             <td>
 
                                 <?= number_format(
-                                    $produto['estoque_minimo'],
+                                    $minimoProduto,
                                     2,
                                     ',',
                                     '.'
@@ -688,13 +719,55 @@ include '../../Includes/sidebar.php';
 
                             <td>
 
-                                <span class="stock-alert-badge">
 
-                                    <i class="bi bi-exclamation-triangle"></i>
+                                <?php if ($critico): ?>
 
-                                    Estoque baixo
 
-                                </span>
+                                    <span
+                                        class="
+                                            stock-alert-badge
+                                            critical
+                                        "
+                                    >
+
+                                        <i class="bi bi-exclamation-octagon"></i>
+
+                                        Crítico
+
+                                    </span>
+
+
+                                <?php else: ?>
+
+
+                                    <span class="stock-alert-badge">
+
+                                        <i class="bi bi-exclamation-triangle"></i>
+
+                                        Estoque baixo
+
+                                    </span>
+
+
+                                <?php endif; ?>
+
+
+                            </td>
+
+
+                            <!-- AÇÃO -->
+
+                            <td>
+
+                                <a
+                                    href="/HA-Stock/app/Views/produtos/detalhes.php?id=<?= $produto['id'] ?>"
+                                    class="stock-view-button"
+                                    title="Ver produto"
+                                >
+
+                                    <i class="bi bi-eye"></i>
+
+                                </a>
 
                             </td>
 

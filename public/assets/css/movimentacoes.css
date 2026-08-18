@@ -231,3 +231,145 @@
 
     color: #9ca3af !important;
 }
+
+/* =========================
+   BOTÃO DETALHES
+========================= */
+
+.movement-detail-button {
+    width: 34px;
+    height: 34px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid #dce7ff;
+    border-radius: 8px;
+
+    background: #eef4ff;
+    color: #3b6fd8;
+
+    text-decoration: none;
+
+    transition: .2s;
+}
+
+.movement-detail-button:hover {
+    background: #3b6fd8;
+    border-color: #3b6fd8;
+
+    color: #fff;
+
+    transform: translateY(-1px);
+}
+
+
+/* =========================
+   DETALHES DA MOVIMENTAÇÃO
+========================= */
+
+.movement-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+
+    gap: 16px;
+
+    margin-bottom: 20px;
+}
+
+.movement-detail-card {
+    padding: 20px;
+
+    background: #fff;
+
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.movement-detail-card span {
+    display: block;
+
+    margin-bottom: 7px;
+
+    color: var(--text-light);
+
+    font-size: 11px;
+    text-transform: uppercase;
+}
+
+.movement-detail-card strong {
+    display: flex;
+    align-items: center;
+
+    gap: 7px;
+
+    font-size: 16px;
+}
+
+.detail-entry {
+    color: #15803d;
+}
+
+.detail-exit {
+    color: var(--primary);
+}
+
+.movement-detail-section {
+    margin-bottom: 20px;
+
+    padding: 22px;
+
+    background: #fff;
+
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.movement-observation {
+    margin-top: 20px;
+
+    padding: 16px;
+
+    background: #f8f9fa;
+
+    border-radius: 9px;
+}
+
+.movement-observation span {
+    display: block;
+
+    margin-bottom: 7px;
+
+    color: var(--text-light);
+
+    font-size: 11px;
+    text-transform: uppercase;
+}
+
+.movement-observation p {
+    margin: 0;
+
+    font-size: 13px;
+    line-height: 1.6;
+
+    color: #4b5563;
+}
+
+
+@media (max-width: 1000px) {
+
+    .movement-detail-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+}
+
+
+@media (max-width: 650px) {
+
+    .movement-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+}
