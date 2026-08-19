@@ -4,6 +4,11 @@
 |--------------------------------------------------------------------------
 | ALERTAS DE ESTOQUE
 |--------------------------------------------------------------------------
+|
+| Os alertas consideram SOMENTE o estoque geral.
+| Materiais destinados diretamente para obras não entram
+| no cálculo de estoque disponível.
+|
 */
 
 $quantidadeAlertas = 0;
@@ -35,13 +40,17 @@ if (isset($pdo)) {
                 COALESCE(
                     SUM(
                         CASE
-                            WHEN m.tipo = 'entrada'
+
+                            WHEN m.tipo_estoque = 'geral'
+                                 AND m.tipo = 'entrada'
                                 THEN m.quantidade
 
-                            WHEN m.tipo = 'saida'
+                            WHEN m.tipo_estoque = 'geral'
+                                 AND m.tipo = 'saida'
                                 THEN -m.quantidade
 
                             ELSE 0
+
                         END
                     ),
                     0
@@ -83,13 +92,17 @@ if (isset($pdo)) {
             COALESCE(
                 SUM(
                     CASE
-                        WHEN m.tipo = 'entrada'
+
+                        WHEN m.tipo_estoque = 'geral'
+                             AND m.tipo = 'entrada'
                             THEN m.quantidade
 
-                        WHEN m.tipo = 'saida'
+                        WHEN m.tipo_estoque = 'geral'
+                             AND m.tipo = 'saida'
                             THEN -m.quantidade
 
                         ELSE 0
+
                     END
                 ),
                 0

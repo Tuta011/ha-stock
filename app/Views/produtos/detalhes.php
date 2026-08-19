@@ -37,6 +37,43 @@ $stmt = $pdo->prepare("
 
         c.nome AS categoria,
 
+        /* ESTOQUE GERAL */
+        COALESCE(
+            SUM(
+                CASE
+                    WHEN m.tipo_estoque = 'geral'
+                         AND m.tipo = 'entrada'
+                        THEN m.quantidade
+
+                    WHEN m.tipo_estoque = 'geral'
+                         AND m.tipo = 'saida'
+                        THEN -m.quantidade
+
+                    ELSE 0
+                END
+            ),
+            0
+        ) AS saldo_geral,
+
+        /* RESERVADO / SEPARADO PARA OBRAS */
+        COALESCE(
+            SUM(
+                CASE
+                    WHEN m.tipo_estoque = 'obra'
+                         AND m.tipo = 'entrada'
+                        THEN m.quantidade
+
+                    WHEN m.tipo_estoque = 'obra'
+                         AND m.tipo = 'saida'
+                        THEN -m.quantidade
+
+                    ELSE 0
+                END
+            ),
+            0
+        ) AS saldo_obras,
+
+        /* TOTAL FÍSICO */
         COALESCE(
             SUM(
                 CASE
@@ -50,7 +87,7 @@ $stmt = $pdo->prepare("
                 END
             ),
             0
-        ) AS saldo
+        ) AS saldo_total
 
     FROM produtos p
 
@@ -98,13 +135,25 @@ if (!$produto) {
 |--------------------------------------------------------------------------
 */
 
-$saldo = (float) $produto['saldo'];
+$saldoGeral = (float) $produto['saldo_geral'];
 
-$estoqueMinimo =
-    (float) $produto['estoque_minimo'];
+$saldoObras = (float) $produto['saldo_obras'];
 
-$estoqueBaixo =
-    $saldo <= $estoqueMinimo;
+$saldoTotal = (float) $produto['saldo_total'];
+
+$estoqueMinimo = (float) $produto['estoque_minimo'];
+
+/*
+|--------------------------------------------------------------------------
+| ESTOQUE BAIXO
+|--------------------------------------------------------------------------
+|
+| O estoque mínimo deve considerar somente o material disponível
+| no estoque geral.
+|
+*/
+
+$estoqueBaixo = $saldoGeral <= $estoqueMinimo;
 
 
 /*
@@ -115,19 +164,35 @@ $estoqueBaixo =
 
 $stmt = $pdo->prepare("
     SELECT
-        id,
-        tipo,
-        quantidade,
-        observacao,
-        data_movimentacao
+        m.id,
+        m.tipo,
+        m.tipo_estoque,
+        m.obra_id,
+        m.quantidade,
+        m.fornecedor,
+        m.responsavel,
+        m.destino,
+        m.observacao,
+        m.data_movimentacao,
 
-    FROM movimentacoes
+        o.nome AS obra_nome,
+        o.codigo AS obra_codigo,
 
-    WHERE produto_id = ?
+        c.nome AS cliente_nome
+
+    FROM movimentacoes m
+
+    LEFT JOIN obras o
+        ON o.id = m.obra_id
+
+    LEFT JOIN clientes c
+        ON c.id = o.cliente_id
+
+    WHERE m.produto_id = ?
 
     ORDER BY
-        data_movimentacao DESC,
-        id DESC
+        m.data_movimentacao DESC,
+        m.id DESC
 ");
 
 $stmt->execute([$id]);
@@ -202,6 +267,17 @@ include '../../Includes/sidebar.php';
                 Saída
             </a>
 
+            <!-- SEPARAR -->
+             
+            <a
+                href="../movimentacoes/separar_obra.php?produto_id=<?= $produto['id'] ?>"
+                class="btn-secondary">
+
+                <i class="bi bi-buildings"></i>
+
+                Separar para obra
+
+            </a>
 
             <!-- EDITAR -->
 
@@ -224,7 +300,7 @@ include '../../Includes/sidebar.php';
     <section class="product-detail-grid">
 
 
-        <!-- SALDO -->
+        <!-- ESTOQUE GERAL -->
 
         <div class="product-detail-card highlight">
 
@@ -237,20 +313,20 @@ include '../../Includes/sidebar.php';
             <div>
 
                 <span>
-                    Saldo atual
+                    Estoque geral
                 </span>
 
                 <strong>
+
                     <?= number_format(
-                        $saldo,
+                        $saldoGeral,
                         2,
                         ',',
                         '.'
                     ) ?>
 
-                    <?= htmlspecialchars(
-                        $produto['unidade']
-                    ) ?>
+                    <?= htmlspecialchars($produto['unidade']) ?>
+
                 </strong>
 
             </div>
@@ -258,40 +334,75 @@ include '../../Includes/sidebar.php';
         </div>
 
 
-        <!-- ESTOQUE MÍNIMO -->
+
+        <!-- RESERVADO EM OBRAS -->
 
         <div class="product-detail-card">
 
             <div class="detail-card-icon">
 
-                <i class="bi bi-speedometer2"></i>
+                <i class="bi bi-buildings"></i>
 
             </div>
 
             <div>
 
                 <span>
-                    Estoque mínimo
+                    Reservado em obras
                 </span>
 
                 <strong>
 
                     <?= number_format(
-                        $estoqueMinimo,
+                        $saldoObras,
                         2,
                         ',',
                         '.'
                     ) ?>
 
-                    <?= htmlspecialchars(
-                        $produto['unidade']
-                    ) ?>
+                    <?= htmlspecialchars($produto['unidade']) ?>
 
                 </strong>
 
             </div>
 
         </div>
+
+
+
+        <!-- TOTAL FÍSICO -->
+
+        <div class="product-detail-card">
+
+            <div class="detail-card-icon">
+
+                <i class="bi bi-boxes"></i>
+
+            </div>
+
+            <div>
+
+                <span>
+                    Total físico
+                </span>
+
+                <strong>
+
+                    <?= number_format(
+                        $saldoTotal,
+                        2,
+                        ',',
+                        '.'
+                    ) ?>
+
+                    <?= htmlspecialchars($produto['unidade']) ?>
+
+                </strong>
+
+            </div>
+
+        </div>
+
 
 
         <!-- STATUS -->
@@ -318,7 +429,6 @@ include '../../Includes/sidebar.php';
                     Status
                 </span>
 
-
                 <?php if ($estoqueBaixo): ?>
 
                     <strong class="detail-status-low">
@@ -332,31 +442,6 @@ include '../../Includes/sidebar.php';
                     </strong>
 
                 <?php endif; ?>
-
-            </div>
-
-        </div>
-
-
-        <!-- MOVIMENTAÇÕES -->
-
-        <div class="product-detail-card">
-
-            <div class="detail-card-icon">
-
-                <i class="bi bi-arrow-left-right"></i>
-
-            </div>
-
-            <div>
-
-                <span>
-                    Movimentações
-                </span>
-
-                <strong>
-                    <?= $totalMovimentacoes ?>
-                </strong>
 
             </div>
 
@@ -556,6 +641,10 @@ include '../../Includes/sidebar.php';
 
                         <th>Quantidade</th>
 
+                        <th>Destino</th>
+
+                        <th>Origem / Responsável</th>
+
                         <th>Data</th>
 
                         <th>Observação</th>
@@ -574,7 +663,7 @@ include '../../Includes/sidebar.php';
                         <tr>
 
                             <td
-                                colspan="4"
+                                colspan="6"
                                 class="empty-products">
 
                                 <i class="bi bi-clock-history"></i>
@@ -658,6 +747,120 @@ include '../../Includes/sidebar.php';
                                         ) ?>
 
                                     </strong>
+
+                                </td>
+
+                                <!-- DESTINO -->
+
+                                <td>
+
+                                    <?php if ($movimentacao['tipo_estoque'] === 'obra'): ?>
+
+                                        <?php if ($movimentacao['obra_id']): ?>
+
+                                            <a
+                                                href="../obras/detalhes.php?id=<?= $movimentacao['obra_id'] ?>"
+                                                class="product-history-work">
+
+                                                <div class="product-history-work-icon">
+
+                                                    <i class="bi bi-buildings"></i>
+
+                                                </div>
+
+
+                                                <div>
+
+                                                    <strong>
+
+                                                        <?= htmlspecialchars(
+                                                            $movimentacao['obra_nome']
+                                                                ?: 'Obra'
+                                                        ) ?>
+
+                                                    </strong>
+
+
+                                                    <?php if ($movimentacao['cliente_nome']): ?>
+
+                                                        <small>
+
+                                                            <?= htmlspecialchars(
+                                                                $movimentacao['cliente_nome']
+                                                            ) ?>
+
+                                                        </small>
+
+                                                    <?php endif; ?>
+
+                                                </div>
+
+                                            </a>
+
+                                        <?php else: ?>
+
+                                            <span class="history-work-warning">
+
+                                                <i class="bi bi-exclamation-triangle"></i>
+
+                                                Obra não informada
+
+                                            </span>
+
+                                        <?php endif; ?>
+
+
+                                    <?php elseif ($entrada): ?>
+
+                                        <span class="history-general-stock">
+
+                                            <i class="bi bi-box-seam"></i>
+
+                                            Almoxarifado
+
+                                        </span>
+
+
+                                    <?php else: ?>
+
+                                        <span class="history-general-stock">
+
+                                            <i class="bi bi-arrow-right"></i>
+
+                                            <?= htmlspecialchars(
+                                                ucfirst(
+                                                    $movimentacao['destino']
+                                                        ?: 'Não informado'
+                                                )
+                                            ) ?>
+
+                                        </span>
+
+                                    <?php endif; ?>
+
+                                </td>
+
+
+
+                                <!-- ORIGEM / RESPONSÁVEL -->
+
+                                <td>
+
+                                    <?php if ($entrada): ?>
+
+                                        <?= htmlspecialchars(
+                                            $movimentacao['fornecedor']
+                                                ?: '-'
+                                        ) ?>
+
+                                    <?php else: ?>
+
+                                        <?= htmlspecialchars(
+                                            $movimentacao['responsavel']
+                                                ?: '-'
+                                        ) ?>
+
+                                    <?php endif; ?>
 
                                 </td>
 

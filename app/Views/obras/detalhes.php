@@ -1,0 +1,1466 @@
+<?php
+
+require_once '../../Config/database.php';
+
+
+/*
+|--------------------------------------------------------------------------
+| ID DA OBRA
+|--------------------------------------------------------------------------
+*/
+
+$obraId = filter_input(
+    INPUT_GET,
+    'id',
+    FILTER_VALIDATE_INT
+);
+
+if (!$obraId) {
+    header('Location: index.php');
+    exit;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| BUSCAR DADOS DA OBRA
+|--------------------------------------------------------------------------
+*/
+
+$stmt = $pdo->prepare("
+    SELECT
+        o.id,
+        o.codigo,
+        o.nome,
+        o.endereco,
+        o.cidade,
+        o.observacoes,
+        o.status,
+        o.created_at,
+
+        c.id AS cliente_id,
+        c.nome AS cliente_nome,
+        c.telefone AS cliente_telefone,
+        c.email AS cliente_email
+
+    FROM obras o
+
+    INNER JOIN clientes c
+        ON c.id = o.cliente_id
+
+    WHERE o.id = :obra_id
+
+    LIMIT 1
+");
+
+$stmt->execute([
+    'obra_id' => $obraId
+]);
+
+$obra = $stmt->fetch();
+
+
+if (!$obra) {
+    header('Location: index.php');
+    exit;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| MATERIAIS VINDOS DO ESTOQUE GERAL
+|--------------------------------------------------------------------------
+*/
+
+$stmt = $pdo->prepare("
+    SELECT
+        p.id AS produto_id,
+        p.codigo,
+        p.nome,
+        p.unidade,
+
+        COALESCE(
+            SUM(
+                CASE
+                    WHEN m.tipo = 'entrada'
+                        THEN m.quantidade
+                    ELSE 0
+                END
+            ),
+            0
+        ) AS total_entradas,
+
+        COALESCE(
+            SUM(
+                CASE
+                    WHEN m.tipo = 'saida'
+                        THEN m.quantidade
+                    ELSE 0
+                END
+            ),
+            0
+        ) AS total_saidas,
+
+        COALESCE(
+            SUM(
+                CASE
+                    WHEN m.tipo = 'entrada'
+                        THEN m.quantidade
+
+                    WHEN m.tipo = 'saida'
+                        THEN -m.quantidade
+
+                    ELSE 0
+                END
+            ),
+            0
+        ) AS saldo
+
+    FROM movimentacoes m
+
+    INNER JOIN produtos p
+        ON p.id = m.produto_id
+
+    WHERE
+        m.tipo_estoque = 'obra'
+        AND m.obra_id = :obra_id
+
+    GROUP BY
+        p.id,
+        p.codigo,
+        p.nome,
+        p.unidade
+
+    ORDER BY
+        p.nome ASC
+");
+
+$stmt->execute([
+    'obra_id' => $obraId
+]);
+
+$materiaisEstoque = $stmt->fetchAll();
+
+
+/*
+|--------------------------------------------------------------------------
+| MATERIAIS ADICIONADOS DIRETAMENTE NA OBRA
+|--------------------------------------------------------------------------
+*/
+
+$stmt = $pdo->prepare("
+    SELECT
+        mo.id,
+        mo.codigo,
+        mo.nome,
+        mo.unidade,
+        mo.quantidade,
+        mo.quantidade_por_embalagem,
+        mo.quantidade_total,
+        mo.observacao,
+        mo.data_entrada,
+
+        COALESCE(
+            SUM(
+                CASE
+                    WHEN mm.tipo = 'entrada'
+                        THEN mm.quantidade
+                    ELSE 0
+                END
+            ),
+            0
+        ) AS total_entradas,
+
+        COALESCE(
+            SUM(
+                CASE
+                    WHEN mm.tipo = 'saida'
+                        THEN mm.quantidade
+                    ELSE 0
+                END
+            ),
+            0
+        ) AS total_saidas,
+
+        COALESCE(
+            SUM(
+                CASE
+                    WHEN mm.tipo = 'entrada'
+                        THEN mm.quantidade
+
+                    WHEN mm.tipo = 'saida'
+                        THEN -mm.quantidade
+
+                    ELSE 0
+                END
+            ),
+            0
+        ) AS saldo
+
+    FROM materiais_obra mo
+
+    LEFT JOIN movimentacoes_materiais_obra mm
+        ON mm.material_obra_id = mo.id
+
+    WHERE mo.obra_id = :obra_id
+
+    GROUP BY
+        mo.id,
+        mo.codigo,
+        mo.nome,
+        mo.unidade,
+        mo.quantidade,
+        mo.quantidade_por_embalagem,
+        mo.quantidade_total,
+        mo.observacao,
+        mo.data_entrada
+
+    ORDER BY
+        mo.data_entrada DESC,
+        mo.id DESC
+");
+
+$stmt->execute([
+    'obra_id' => $obraId
+]);
+
+$materiaisDiretos = $stmt->fetchAll();
+
+
+/*
+|--------------------------------------------------------------------------
+| TOTAIS
+|--------------------------------------------------------------------------
+*/
+
+$totalProdutosEstoque =
+    count($materiaisEstoque);
+
+$totalProdutosDiretos =
+    count($materiaisDiretos);
+
+$totalProdutos =
+    $totalProdutosEstoque +
+    $totalProdutosDiretos;
+
+
+$totalEntradas = 0;
+$totalSaidas = 0;
+$totalSaldo = 0;
+
+
+/*
+|--------------------------------------------------------------------------
+| TOTAIS DO MATERIAL VINDO DO ESTOQUE
+|--------------------------------------------------------------------------
+*/
+
+foreach ($materiaisEstoque as $material) {
+
+    $totalEntradas +=
+        (float) $material['total_entradas'];
+
+    $totalSaidas +=
+        (float) $material['total_saidas'];
+
+    $totalSaldo +=
+        (float) $material['saldo'];
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| TOTAIS DOS MATERIAIS DIRETOS
+|--------------------------------------------------------------------------
+*/
+
+$totalEntradasDiretas = 0;
+$totalSaidasDiretas = 0;
+$totalSaldoDireto = 0;
+
+foreach ($materiaisDiretos as $material) {
+
+    $totalEntradasDiretas +=
+        (float) $material['total_entradas'];
+
+    $totalSaidasDiretas +=
+        (float) $material['total_saidas'];
+
+    $totalSaldoDireto +=
+        (float) $material['saldo'];
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| TOTAL GERAL DA OBRA
+|--------------------------------------------------------------------------
+*/
+
+$totalRecebidoObra =
+    $totalEntradas +
+    $totalEntradasDiretas;
+
+$totalRetiradoObra =
+    $totalSaidas +
+    $totalSaidasDiretas;
+
+$totalSaldoObra =
+    $totalSaldo +
+    $totalSaldoDireto;
+
+/*
+|--------------------------------------------------------------------------
+| STATUS
+|--------------------------------------------------------------------------
+*/
+
+$statusLabel = match ($obra['status']) {
+
+    'ativa' => 'Ativa',
+
+    'finalizada' => 'Finalizada',
+
+    'cancelada' => 'Cancelada',
+
+    default => ucfirst($obra['status'])
+};
+
+
+/*
+|--------------------------------------------------------------------------
+| FUNÇÃO PARA FORMATAR QUANTIDADE
+|--------------------------------------------------------------------------
+*/
+
+function formatarQuantidadeObra(
+    $quantidade,
+    $unidade
+) {
+
+    $quantidade =
+        (float) $quantidade;
+
+    $unidade =
+        strtolower(
+            trim($unidade)
+        );
+
+
+    if (
+        in_array(
+            $unidade,
+            [
+                'un',
+                'pacote',
+                'caixa'
+            ],
+            true
+        )
+    ) {
+
+        return number_format(
+            $quantidade,
+            0,
+            ',',
+            '.'
+        );
+    }
+
+
+    return number_format(
+        $quantidade,
+        2,
+        ',',
+        '.'
+    );
+}
+
+
+include '../../Includes/header.php';
+include '../../Includes/sidebar.php';
+
+?>
+
+
+<main class="content">
+
+
+    <!-- =========================
+         MENSAGEM DE SUCESSO
+    ========================== -->
+
+    <?php if (
+        isset($_GET['material']) &&
+        $_GET['material'] === 'adicionado'
+    ): ?>
+
+        <div class="alert-success">
+
+            <i class="bi bi-check-circle"></i>
+
+            Material adicionado à obra com sucesso!
+
+        </div>
+
+    <?php endif; ?>
+
+
+
+    <!-- =========================
+         CABEÇALHO
+    ========================== -->
+
+    <div class="page-header">
+
+        <div>
+
+            <a
+                href="index.php"
+                class="clear-filter"
+                style="
+                    display:inline-flex;
+                    margin-bottom:10px;
+                ">
+
+                <i class="bi bi-arrow-left"></i>
+
+                Voltar para obras
+
+            </a>
+
+
+            <h1>
+
+                <?= htmlspecialchars(
+                    $obra['nome']
+                ) ?>
+
+            </h1>
+
+
+            <p>
+
+                <?php if ($obra['codigo']): ?>
+
+                    <?= htmlspecialchars(
+                        $obra['codigo']
+                    ) ?>
+
+                    &bull;
+
+                <?php endif; ?>
+
+
+                <?= htmlspecialchars(
+                    $obra['cliente_nome']
+                ) ?>
+
+            </p>
+
+        </div>
+
+
+        <span
+            class="
+                obra-status
+                obra-status-<?= htmlspecialchars(
+                                $obra['status']
+                            ) ?>
+            ">
+
+            <?= htmlspecialchars(
+                $statusLabel
+            ) ?>
+
+        </span>
+
+    </div>
+
+
+
+    <!-- =========================
+         RESUMO
+    ========================== -->
+
+    <section class="obra-summary-grid">
+
+
+        <!-- PRODUTOS -->
+
+        <div class="obra-summary-card">
+
+            <div class="obra-summary-icon">
+
+                <i class="bi bi-box-seam"></i>
+
+            </div>
+
+
+            <div>
+
+                <span>
+                    Produtos da obra
+                </span>
+
+                <strong>
+                    <?= $totalProdutos ?>
+                </strong>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- RECEBIDO -->
+
+        <div class="obra-summary-card">
+
+            <div class="obra-summary-icon">
+
+                <i class="bi bi-arrow-down-circle"></i>
+
+            </div>
+
+
+            <div>
+
+                <span>
+                    Total recebido
+                </span>
+
+                <strong>
+
+                    <?= number_format(
+                        $totalRecebidoObra,
+                        2,
+                        ',',
+                        '.'
+                    ) ?>
+
+                </strong>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- RETIRADO -->
+
+        <div class="obra-summary-card">
+
+            <div class="obra-summary-icon">
+
+                <i class="bi bi-arrow-up-circle"></i>
+
+            </div>
+
+
+            <div>
+
+                <span>
+                    Total retirado
+                </span>
+
+                <strong>
+
+                    <?= number_format(
+                        $totalRetiradoObra,
+                        2,
+                        ',',
+                        '.'
+                    ) ?>
+
+                </strong>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- SALDO -->
+
+        <div class="obra-summary-card">
+
+            <div class="obra-summary-icon">
+
+                <i class="bi bi-lock"></i>
+
+            </div>
+
+
+            <div>
+
+                <span>
+                    Saldo na obra
+                </span>
+
+                <strong>
+
+                    <?= number_format(
+                        $totalSaldoObra,
+                        2,
+                        ',',
+                        '.'
+                    ) ?>
+
+                </strong>
+
+            </div>
+
+        </div>
+
+
+    </section>
+
+
+
+    <!-- =========================
+         INFORMAÇÕES DA OBRA
+    ========================== -->
+
+    <section class="obra-details-card">
+
+        <div class="obra-section-header">
+
+            <div>
+
+                <h2>
+                    Informações da obra
+                </h2>
+
+                <p>
+                    Dados cadastrados da obra e do cliente.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="obra-info-grid">
+
+
+            <div class="obra-info-item">
+
+                <span>
+                    Cliente
+                </span>
+
+                <strong>
+
+                    <?= htmlspecialchars(
+                        $obra['cliente_nome']
+                    ) ?>
+
+                </strong>
+
+            </div>
+
+
+
+            <div class="obra-info-item">
+
+                <span>
+                    Código
+                </span>
+
+                <strong>
+
+                    <?= htmlspecialchars(
+                        $obra['codigo']
+                            ?: '-'
+                    ) ?>
+
+                </strong>
+
+            </div>
+
+
+
+            <div class="obra-info-item">
+
+                <span>
+                    Cidade
+                </span>
+
+                <strong>
+
+                    <?= htmlspecialchars(
+                        $obra['cidade']
+                            ?: '-'
+                    ) ?>
+
+                </strong>
+
+            </div>
+
+
+
+            <div class="obra-info-item">
+
+                <span>
+                    Endereço
+                </span>
+
+                <strong>
+
+                    <?= htmlspecialchars(
+                        $obra['endereco']
+                            ?: '-'
+                    ) ?>
+
+                </strong>
+
+            </div>
+
+
+
+            <div class="obra-info-item">
+
+                <span>
+                    Telefone do cliente
+                </span>
+
+                <strong>
+
+                    <?= htmlspecialchars(
+                        $obra['cliente_telefone']
+                            ?: '-'
+                    ) ?>
+
+                </strong>
+
+            </div>
+
+
+
+            <div class="obra-info-item">
+
+                <span>
+                    E-mail do cliente
+                </span>
+
+                <strong>
+
+                    <?= htmlspecialchars(
+                        $obra['cliente_email']
+                            ?: '-'
+                    ) ?>
+
+                </strong>
+
+            </div>
+
+
+        </div>
+
+
+        <?php if ($obra['observacoes']): ?>
+
+            <div class="obra-observacoes">
+
+                <span>
+                    Observações
+                </span>
+
+                <p>
+
+                    <?= nl2br(
+                        htmlspecialchars(
+                            $obra['observacoes']
+                        )
+                    ) ?>
+
+                </p>
+
+            </div>
+
+        <?php endif; ?>
+
+
+    </section>
+
+
+
+    <!-- =========================
+         MATERIAIS
+    ========================== -->
+
+    <section class="obra-details-card">
+
+
+        <div class="obra-section-header">
+
+            <div>
+
+                <h2>
+                    Materiais da obra
+                </h2>
+
+                <p>
+                    Materiais separados do estoque e materiais recebidos diretamente para esta obra.
+                </p>
+
+            </div>
+
+
+            <?php if ($obra['status'] === 'ativa'): ?>
+
+                <a
+                    href="adicionar_material.php?obra_id=<?= $obra['id'] ?>"
+                    class="btn-primary">
+
+                    <i class="bi bi-plus-lg"></i>
+
+                    Adicionar material
+
+                </a>
+
+            <?php endif; ?>
+
+        </div>
+
+
+
+        <!-- =========================
+             MATERIAIS DO ESTOQUE GERAL
+        ========================== -->
+
+        <?php if (!empty($materiaisEstoque)): ?>
+
+            <div class="obra-material-group-title">
+
+                <div>
+
+                    <i class="bi bi-arrow-left-right"></i>
+
+                    <strong>
+                        Separados do estoque geral
+                    </strong>
+
+                </div>
+
+                <span>
+                    <?= count($materiaisEstoque) ?>
+                    produto(s)
+                </span>
+
+            </div>
+
+
+            <div class="obra-materials-table">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+
+                            <th>Produto</th>
+
+                            <th>Entrada</th>
+
+                            <th>Saída</th>
+
+                            <th>Saldo</th>
+
+                            <th>Unidade</th>
+
+                            <th>Origem</th>
+
+                            <th>Ação</th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+
+                        <?php foreach (
+                            $materiaisEstoque
+                            as $material
+                        ): ?>
+
+
+                            <?php
+
+                            $saldo =
+                                (float) $material['saldo'];
+
+                            ?>
+
+
+                            <tr>
+
+
+                                <!-- PRODUTO -->
+
+                                <td>
+
+                                    <div class="table-product">
+
+                                        <div class="product-icon">
+
+                                            <i class="bi bi-box"></i>
+
+                                        </div>
+
+
+                                        <div class="movement-product-info">
+
+                                            <strong>
+
+                                                <?= htmlspecialchars(
+                                                    $material['nome']
+                                                ) ?>
+
+                                            </strong>
+
+                                            <small>
+
+                                                <?= htmlspecialchars(
+                                                    $material['codigo']
+                                                ) ?>
+
+                                            </small>
+
+                                        </div>
+
+                                    </div>
+
+                                </td>
+
+
+
+                                <!-- ENTRADA -->
+
+                                <td class="movement-quantity entrada">
+
+                                    +
+
+                                    <?= formatarQuantidadeObra(
+                                        $material['total_entradas'],
+                                        $material['unidade']
+                                    ) ?>
+
+                                </td>
+
+
+
+                                <!-- SAÍDA -->
+
+                                <td class="movement-quantity saida">
+
+                                    -
+
+                                    <?= formatarQuantidadeObra(
+                                        $material['total_saidas'],
+                                        $material['unidade']
+                                    ) ?>
+
+                                </td>
+
+
+
+                                <!-- SALDO -->
+
+                                <td>
+
+                                    <strong
+                                        class="<?= $saldo <= 0
+                                                    ? 'stock-low'
+                                                    : '' ?>">
+
+                                        <?= formatarQuantidadeObra(
+                                            $saldo,
+                                            $material['unidade']
+                                        ) ?>
+
+                                    </strong>
+
+                                </td>
+
+
+
+                                <!-- UNIDADE -->
+
+                                <td>
+
+                                    <?= htmlspecialchars(
+                                        $material['unidade']
+                                    ) ?>
+
+                                </td>
+
+
+
+                                <!-- ORIGEM -->
+
+                                <td>
+
+                                    <span class="obra-origin-badge stock">
+
+                                        <i class="bi bi-box-seam"></i>
+
+                                        Estoque geral
+
+                                    </span>
+
+                                </td>
+
+
+
+                                <!-- AÇÃO -->
+
+                                <td>
+
+                                    <a
+                                        href="../produtos/detalhes.php?id=<?= $material['produto_id'] ?>"
+                                        class="movement-detail-button"
+                                        title="Ver produto">
+
+                                        <i class="bi bi-eye"></i>
+
+                                    </a>
+
+                                </td>
+
+
+                            </tr>
+
+
+                        <?php endforeach; ?>
+
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        <?php endif; ?>
+
+
+
+        <!-- =========================
+     MATERIAIS DIRETOS
+========================== -->
+
+        <?php if (!empty($materiaisDiretos)): ?>
+
+            <div class="obra-material-group-title direct">
+
+                <div>
+
+                    <i class="bi bi-truck"></i>
+
+                    <strong>
+                        Recebidos diretamente para a obra
+                    </strong>
+
+                </div>
+
+                <span>
+                    <?= count($materiaisDiretos) ?>
+                    item(ns)
+                </span>
+
+            </div>
+
+
+            <div class="obra-materials-table">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+
+                            <th>Produto</th>
+
+                            <th>Entrada</th>
+
+                            <th>Saída</th>
+
+                            <th>Saldo</th>
+
+                            <th>Embalagem</th>
+
+                            <th>Origem</th>
+
+                            <th>Ações</th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        <?php foreach (
+                            $materiaisDiretos
+                            as $material
+                        ): ?>
+
+                            <?php
+
+                            $unidade =
+                                strtolower(
+                                    trim(
+                                        $material['unidade']
+                                    )
+                                );
+
+                            $embalagem =
+                                $unidade === 'pacote' ||
+                                $unidade === 'caixa';
+
+                            $saldoDireto =
+                                (float) $material['saldo'];
+
+                            ?>
+
+
+                            <tr>
+
+
+                                <!-- PRODUTO -->
+
+                                <td>
+
+                                    <div class="table-product">
+
+                                        <div class="product-icon">
+
+                                            <i class="bi bi-box"></i>
+
+                                        </div>
+
+
+                                        <div class="movement-product-info">
+
+                                            <strong>
+
+                                                <?= htmlspecialchars(
+                                                    $material['nome']
+                                                ) ?>
+
+                                            </strong>
+
+
+                                            <small>
+
+                                                <?= htmlspecialchars(
+                                                    $material['codigo']
+                                                        ?: 'Sem código'
+                                                ) ?>
+
+                                            </small>
+
+                                        </div>
+
+                                    </div>
+
+                                </td>
+
+
+                                <!-- ENTRADA -->
+
+                                <td class="movement-quantity entrada">
+
+                                    +
+
+                                    <?= formatarQuantidadeObra(
+                                        $material['total_entradas'],
+                                        $embalagem
+                                            ? 'un'
+                                            : $material['unidade']
+                                    ) ?>
+
+                                    <?php if ($embalagem): ?>
+
+                                        un
+
+                                    <?php else: ?>
+
+                                        <?= htmlspecialchars(
+                                            $material['unidade']
+                                        ) ?>
+
+                                    <?php endif; ?>
+
+                                </td>
+
+
+                                <!-- SAÍDA -->
+
+                                <td class="movement-quantity saida">
+
+                                    -
+
+                                    <?= formatarQuantidadeObra(
+                                        $material['total_saidas'],
+                                        $embalagem
+                                            ? 'un'
+                                            : $material['unidade']
+                                    ) ?>
+
+                                    <?php if ($embalagem): ?>
+
+                                        un
+
+                                    <?php else: ?>
+
+                                        <?= htmlspecialchars(
+                                            $material['unidade']
+                                        ) ?>
+
+                                    <?php endif; ?>
+
+                                </td>
+
+
+                                <!-- SALDO -->
+
+                                <td>
+
+                                    <strong
+                                        class="<?= $saldoDireto <= 0
+                                                    ? 'stock-low'
+                                                    : '' ?>">
+
+                                        <?= formatarQuantidadeObra(
+                                            $saldoDireto,
+                                            $embalagem
+                                                ? 'un'
+                                                : $material['unidade']
+                                        ) ?>
+
+                                        <?php if ($embalagem): ?>
+
+                                            un
+
+                                        <?php else: ?>
+
+                                            <?= htmlspecialchars(
+                                                $material['unidade']
+                                            ) ?>
+
+                                        <?php endif; ?>
+
+                                    </strong>
+
+                                </td>
+
+
+                                <!-- EMBALAGEM -->
+
+                                <td>
+
+                                    <?php if ($embalagem): ?>
+
+                                        <div class="movement-product-info">
+
+                                            <strong>
+
+                                                <?= formatarQuantidadeObra(
+                                                    $material['quantidade'],
+                                                    $material['unidade']
+                                                ) ?>
+
+                                                <?= htmlspecialchars(
+                                                    $material['unidade']
+                                                ) ?>(s)
+
+                                            </strong>
+
+                                            <small>
+
+                                                <?= number_format(
+                                                    $material['quantidade_por_embalagem'],
+                                                    0,
+                                                    ',',
+                                                    '.'
+                                                ) ?>
+
+                                                itens por embalagem
+
+                                            </small>
+
+                                        </div>
+
+                                    <?php else: ?>
+
+                                        <span class="stock-zero">
+                                            -
+                                        </span>
+
+                                    <?php endif; ?>
+
+                                </td>
+
+
+                                <!-- ORIGEM -->
+
+                                <td>
+
+                                    <span class="obra-origin-badge direct">
+
+                                        <i class="bi bi-truck"></i>
+
+                                        Entrada direta
+
+                                    </span>
+
+                                </td>
+
+
+                                <!-- AÇÕES -->
+
+                                <td>
+
+                                    <div
+                                        style="
+                                    display:flex;
+                                    align-items:center;
+                                    gap:7px;
+                                ">
+
+                                        <!-- EDITAR -->
+
+                                        <?php if (
+                                            $obra['status'] === 'ativa'
+                                        ): ?>
+
+                                            <a
+                                                href="editar_material.php?id=<?= $material['id'] ?>"
+                                                class="movement-detail-button"
+                                                title="Editar material">
+
+                                                <i class="bi bi-pencil"></i>
+
+                                            </a>
+
+
+                                            <!-- DAR SAÍDA -->
+
+                                            <?php if (
+                                                $saldoDireto > 0
+                                            ): ?>
+
+                                                <a
+                                                    href="saida_material.php?id=<?= $material['id'] ?>"
+                                                    class="movement-detail-button"
+                                                    title="Dar saída">
+
+                                                    <i class="bi bi-box-arrow-up"></i>
+
+                                                </a>
+
+                                            <?php else: ?>
+
+                                                <span
+                                                    class="movement-detail-button"
+                                                    title="Material sem saldo"
+                                                    style="
+                                                opacity:.35;
+                                                cursor:not-allowed;
+                                            ">
+
+                                                    <i class="bi bi-box-arrow-up"></i>
+
+                                                </span>
+
+                                            <?php endif; ?>
+
+                                        <?php else: ?>
+
+                                            <span class="stock-zero">
+                                                -
+                                            </span>
+
+                                        <?php endif; ?>
+
+                                    </div>
+
+                                </td>
+
+
+                            </tr>
+
+                        <?php endforeach; ?>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        <?php endif; ?>
+
+        <?php if (
+            isset($_GET['material']) &&
+            $_GET['material'] === 'editado'
+        ): ?>
+
+            <div class="alert-success">
+
+                <i class="bi bi-check-circle"></i>
+
+                Material atualizado com sucesso!
+
+            </div>
+
+        <?php endif; ?>
+
+
+        <?php if (
+            isset($_GET['material']) &&
+            $_GET['material'] === 'saida'
+        ): ?>
+
+            <div class="alert-success">
+
+                <i class="bi bi-check-circle"></i>
+
+                Saída do material registrada com sucesso!
+
+            </div>
+
+        <?php endif; ?>
+
+
+
+        <!-- =========================
+             NENHUM MATERIAL
+        ========================== -->
+
+        <?php if (
+            empty($materiaisEstoque) &&
+            empty($materiaisDiretos)
+        ): ?>
+
+            <div class="empty-table">
+
+                <i class="bi bi-box"></i>
+
+                Nenhum material cadastrado para esta obra.
+
+            </div>
+
+        <?php endif; ?>
+
+
+    </section>
+
+
+</main>
+
+
+<?php include '../../Includes/footer.php'; ?>

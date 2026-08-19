@@ -178,3 +178,403 @@
     }
 
 }
+
+/* =========================
+   DETALHES DA OBRA
+========================= */
+
+.obra-summary-grid {
+    display: grid;
+
+    grid-template-columns: repeat(4, 1fr);
+
+    gap: 16px;
+
+    margin-bottom: 20px;
+}
+
+
+.obra-summary-card {
+    display: flex;
+    align-items: center;
+
+    gap: 14px;
+
+    padding: 18px;
+
+    background: #ffffff;
+
+    border: 1px solid #e8eaed;
+
+    border-radius: 12px;
+}
+
+
+.obra-summary-icon {
+    width: 42px;
+    height: 42px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 10px;
+
+    background: #fff1f1;
+
+    color: #d00000;
+
+    font-size: 18px;
+}
+
+
+.obra-summary-card > div:last-child {
+    display: flex;
+    flex-direction: column;
+
+    gap: 4px;
+}
+
+
+.obra-summary-card span {
+    font-size: 11px;
+
+    color: #8b93a1;
+}
+
+
+.obra-summary-card strong {
+    font-size: 20px;
+
+    color: #1f2937;
+}
+
+
+/* =========================
+   CARD
+========================= */
+
+.obra-details-card {
+    margin-bottom: 20px;
+
+    padding: 20px;
+
+    background: #ffffff;
+
+    border: 1px solid #e8eaed;
+
+    border-radius: 12px;
+}
+
+
+.obra-section-header {
+    margin-bottom: 18px;
+}
+
+
+.obra-section-header h2 {
+    margin: 0;
+
+    font-size: 16px;
+}
+
+
+.obra-section-header p {
+    margin-top: 4px;
+
+    font-size: 11px;
+
+    color: #8b93a1;
+}
+
+
+/* =========================
+   INFORMAÇÕES
+========================= */
+
+.obra-info-grid {
+    display: grid;
+
+    grid-template-columns: repeat(3, 1fr);
+
+    gap: 14px;
+}
+
+
+.obra-info-item {
+    display: flex;
+    flex-direction: column;
+
+    gap: 6px;
+
+    padding: 14px;
+
+    background: #f8f9fa;
+
+    border-radius: 10px;
+}
+
+
+.obra-info-item span {
+    font-size: 10px;
+
+    text-transform: uppercase;
+
+    color: #8b93a1;
+}
+
+
+.obra-info-item strong {
+    font-size: 12px;
+
+    color: #1f2937;
+}
+
+
+.obra-observacoes {
+    margin-top: 14px;
+
+    padding: 14px;
+
+    background: #f8f9fa;
+
+    border-radius: 10px;
+}
+
+
+.obra-observacoes span {
+    display: block;
+
+    margin-bottom: 6px;
+
+    font-size: 10px;
+
+    text-transform: uppercase;
+
+    color: #8b93a1;
+}
+
+
+.obra-observacoes p {
+    margin: 0;
+
+    font-size: 12px;
+}
+
+
+/* =========================
+   STATUS
+========================= */
+
+.obra-status {
+    display: inline-flex;
+
+    align-items: center;
+
+    padding: 6px 10px;
+
+    border-radius: 20px;
+
+    font-size: 11px;
+
+    font-weight: 600;
+}
+
+
+.obra-status-ativa {
+    background: #e8f7ef;
+
+    color: #1c8c4d;
+}
+
+
+.obra-status-finalizada {
+    background: #eef2ff;
+
+    color: #4f63c7;
+}
+
+
+.obra-status-cancelada {
+    background: #fdecec;
+
+    color: #c0392b;
+}
+
+
+/* =========================
+   TABELA DE MATERIAIS
+========================= */
+
+.obra-materials-table {
+    overflow-x: auto;
+}
+
+
+.obra-materials-table table {
+    width: 100%;
+
+    border-collapse: collapse;
+}
+
+
+.obra-materials-table th {
+    padding: 12px;
+
+    text-align: left;
+
+    font-size: 10px;
+
+    color: #7f8793;
+
+    border-bottom: 1px solid #e8eaed;
+}
+
+
+.obra-materials-table td {
+    padding: 12px;
+
+    font-size: 11px;
+
+    border-bottom: 1px solid #eef0f2;
+}
+
+
+/* =========================
+   RESPONSIVO
+========================= */
+
+@media (max-width: 1000px) {
+
+    .obra-summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .obra-info-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+}
+
+
+@media (max-width: 650px) {
+
+    .obra-summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .obra-info-grid {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+/* =========================
+   AÇÕES DA OBRA
+========================= */
+
+.work-action-button {
+    width: 30px;
+    height: 30px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 7px;
+
+    background: #eef4ff;
+    border: 1px solid #dce7ff;
+
+    color: #4f7cff;
+
+    text-decoration: none;
+
+    transition: 0.2s;
+}
+
+.work-action-button:hover {
+    background: #e1ebff;
+    transform: translateY(-1px);
+}
+
+/* =========================
+   GRUPOS DE MATERIAIS
+========================= */
+
+.obra-material-group-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 12px;
+
+    margin-top: 20px;
+    margin-bottom: 10px;
+
+    padding: 10px 12px;
+
+    border-radius: 8px;
+
+    background: #f8f9fa;
+}
+
+
+.obra-material-group-title > div {
+    display: flex;
+    align-items: center;
+
+    gap: 7px;
+}
+
+
+.obra-material-group-title strong {
+    font-size: 11px;
+
+    color: #374151;
+}
+
+
+.obra-material-group-title span {
+    font-size: 10px;
+
+    color: #8b93a1;
+}
+
+
+.obra-material-group-title.direct {
+    background: #fff9ec;
+}
+
+
+/* =========================
+   ORIGEM DO MATERIAL
+========================= */
+
+.obra-origin-badge {
+    display: inline-flex;
+    align-items: center;
+
+    gap: 5px;
+
+    padding: 5px 8px;
+
+    border-radius: 7px;
+
+    font-size: 10px;
+    font-weight: 600;
+}
+
+
+.obra-origin-badge.stock {
+    background: #eef4ff;
+
+    color: #4f6fc7;
+}
+
+
+.obra-origin-badge.direct {
+    background: #fff4e5;
+
+    color: #b76e00;
+}

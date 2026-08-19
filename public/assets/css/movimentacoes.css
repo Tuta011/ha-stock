@@ -373,3 +373,134 @@
     }
 
 }
+
+/* =========================
+   TIPO DE ESTOQUE
+========================= */
+
+.movement-type-wrapper {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+
+.movement-stock {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+
+    padding: 4px 7px;
+
+    border-radius: 6px;
+
+    font-size: 10px;
+    font-weight: 600;
+}
+
+
+.movement-general {
+    background: #f1f3f5;
+    color: #6b7280;
+}
+
+
+.movement-work {
+    background: #fff4e5;
+    color: #b76e00;
+}
+
+
+.movement-work i {
+    font-size: 10px;
+}
+
+
+
+/* =========================
+   DESTINO - OBRA
+========================= */
+
+.movement-work-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+
+    text-decoration: none;
+
+    color: inherit;
+}
+
+
+.movement-work-icon {
+    width: 32px;
+    height: 32px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 8px;
+
+    background: #fff4e5;
+
+    color: #b76e00;
+
+    flex-shrink: 0;
+}
+
+
+.movement-work-link > div:last-child {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+
+.movement-work-link strong {
+    font-size: 11px;
+    color: #1f2937;
+}
+
+
+.movement-work-link small {
+    font-size: 9px;
+    color: #8b93a1;
+}
+
+
+.movement-work-link:hover strong {
+    text-decoration: underline;
+}
+
+
+/* =========================
+   ESTOQUE GERAL
+========================= */
+
+.movement-general-destination {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+
+.movement-general-destination i {
+    color: #8b93a1;
+}
+
+
+/* =========================
+   AVISO OBRA
+========================= */
+
+.movement-work-warning {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+
+    font-size: 10px;
+
+    color: #b76e00;
+}

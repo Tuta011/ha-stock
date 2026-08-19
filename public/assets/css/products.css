@@ -887,3 +887,127 @@
 
     transform: translateY(-1px);
 }
+
+/* =========================
+   ESTOQUE POR TIPO
+========================= */
+
+.stock-reserved {
+    display: inline-flex;
+    align-items: center;
+
+    gap: 5px;
+
+    padding: 5px 8px;
+
+    border-radius: 6px;
+
+    background: #fff4e5;
+
+    color: #b76e00;
+
+    font-size: 11px;
+    font-weight: 600;
+}
+
+
+.stock-reserved i {
+    font-size: 9px;
+}
+
+
+.stock-physical {
+    font-weight: 600;
+
+    color: #4b5563;
+}
+
+
+.stock-zero {
+    color: #b8bdc5;
+
+    font-size: 11px;
+}
+
+/* =========================
+   HISTÓRICO - DESTINO OBRA
+========================= */
+
+.product-history-work {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+
+    color: inherit;
+    text-decoration: none;
+}
+
+
+.product-history-work-icon {
+    width: 30px;
+    height: 30px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    border-radius: 8px;
+
+    background: #fff4e5;
+    color: #b76e00;
+}
+
+
+.product-history-work > div:last-child {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+
+.product-history-work strong {
+    font-size: 11px;
+    color: #1f2937;
+}
+
+
+.product-history-work small {
+    font-size: 9px;
+    color: #8b93a1;
+}
+
+
+.product-history-work:hover strong {
+    text-decoration: underline;
+}
+
+
+/* ESTOQUE GERAL / DESTINO */
+
+.history-general-stock {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    font-size: 11px;
+    color: #4b5563;
+}
+
+
+.history-general-stock i {
+    color: #8b93a1;
+}
+
+
+/* OBRA NÃO INFORMADA */
+
+.history-work-warning {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+
+    font-size: 10px;
+    color: #b76e00;
+}

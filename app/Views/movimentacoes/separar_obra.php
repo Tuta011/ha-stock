@@ -28,29 +28,86 @@ if (!$produtoSelecionado) {
 
 $erro = '';
 
-$tipoEstoqueSelecionado = $_POST['tipo_estoque'] ?? 'geral';
 $clienteSelecionado = $_POST['cliente_id'] ?? '';
 $obraSelecionada = $_POST['obra_id'] ?? '';
 
 
 /*
 |--------------------------------------------------------------------------
-| BUSCAR PRODUTOS ATIVOS
+| FORMATAR QUANTIDADE
+|--------------------------------------------------------------------------
+*/
+
+function formatarQuantidade($quantidade, $unidade)
+{
+    $quantidade = (float) $quantidade;
+
+    if (strtolower(trim($unidade)) === 'un') {
+
+        return number_format(
+            $quantidade,
+            0,
+            ',',
+            '.'
+        );
+    }
+
+    return number_format(
+        $quantidade,
+        2,
+        ',',
+        '.'
+    );
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| PRODUTOS ATIVOS + SALDO GERAL
 |--------------------------------------------------------------------------
 */
 
 $stmt = $pdo->query("
     SELECT
-        id,
-        codigo,
-        nome,
-        unidade
+        p.id,
+        p.codigo,
+        p.nome,
+        p.unidade,
 
-    FROM produtos
+        COALESCE(
+            SUM(
+                CASE
 
-    WHERE ativo = 1
+                    WHEN m.tipo_estoque = 'geral'
+                         AND m.tipo = 'entrada'
+                        THEN m.quantidade
 
-    ORDER BY nome ASC
+                    WHEN m.tipo_estoque = 'geral'
+                         AND m.tipo = 'saida'
+                        THEN -m.quantidade
+
+                    ELSE 0
+
+                END
+            ),
+            0
+        ) AS saldo_geral
+
+    FROM produtos p
+
+    LEFT JOIN movimentacoes m
+        ON m.produto_id = p.id
+
+    WHERE p.ativo = 1
+
+    GROUP BY
+        p.id,
+        p.codigo,
+        p.nome,
+        p.unidade
+
+    ORDER BY
+        p.nome ASC
 ");
 
 $produtos = $stmt->fetchAll();
@@ -58,7 +115,7 @@ $produtos = $stmt->fetchAll();
 
 /*
 |--------------------------------------------------------------------------
-| BUSCAR CLIENTES ATIVOS
+| CLIENTES ATIVOS
 |--------------------------------------------------------------------------
 */
 
@@ -79,7 +136,7 @@ $clientes = $stmt->fetchAll();
 
 /*
 |--------------------------------------------------------------------------
-| BUSCAR OBRAS ATIVAS
+| OBRAS ATIVAS
 |--------------------------------------------------------------------------
 */
 
@@ -110,24 +167,32 @@ $obras = $stmt->fetchAll();
 
 /*
 |--------------------------------------------------------------------------
-| PROCESSAR FORMULÁRIO
+| PROCESSAR
 |--------------------------------------------------------------------------
 */
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $produtoId = $_POST['produto_id'] ?? '';
-    $quantidade = $_POST['quantidade'] ?? '';
-    $data = $_POST['data'] ?? '';
+    $produtoId =
+        $_POST['produto_id'] ?? '';
 
-    $tipoEstoque = $_POST['tipo_estoque'] ?? 'geral';
+    $quantidade =
+        $_POST['quantidade'] ?? '';
 
-    $clienteId = $_POST['cliente_id'] ?? '';
-    $obraId = $_POST['obra_id'] ?? '';
+    $clienteId =
+        $_POST['cliente_id'] ?? '';
 
-    $fornecedor = trim($_POST['fornecedor'] ?? '');
-    $documento = trim($_POST['documento'] ?? '');
-    $observacao = trim($_POST['observacao'] ?? '');
+    $obraId =
+        $_POST['obra_id'] ?? '';
+
+    $data =
+        $_POST['data'] ?? '';
+
+    $responsavel =
+        trim($_POST['responsavel'] ?? '');
+
+    $observacao =
+        trim($_POST['observacao'] ?? '');
 
 
     /*
@@ -139,28 +204,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (
         $produtoId === '' ||
         $quantidade === '' ||
+        $clienteId === '' ||
+        $obraId === '' ||
         $data === ''
     ) {
 
-        $erro = 'Preencha os campos obrigatórios.';
+        $erro =
+            'Preencha todos os campos obrigatórios.';
 
     } elseif ((float) $quantidade <= 0) {
 
-        $erro = 'A quantidade deve ser maior que zero.';
-
-    } elseif (
-        $tipoEstoque !== 'geral' &&
-        $tipoEstoque !== 'obra'
-    ) {
-
-        $erro = 'Selecione um destino válido para o material.';
-
-    } elseif (
-        $tipoEstoque === 'obra' &&
-        ($clienteId === '' || $obraId === '')
-    ) {
-
-        $erro = 'Selecione o cliente e a obra.';
+        $erro =
+            'A quantidade deve ser maior que zero.';
 
     } else {
 
@@ -168,16 +223,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             /*
             |--------------------------------------------------------------------------
-            | VALIDAR PRODUTO E UNIDADE
+            | VALIDAR PRODUTO
             |--------------------------------------------------------------------------
             */
 
             $stmt = $pdo->prepare("
-                SELECT unidade
+                SELECT
+                    id,
+                    unidade
+
                 FROM produtos
+
                 WHERE
                     id = ?
                     AND ativo = 1
+
                 LIMIT 1
             ");
 
@@ -185,9 +245,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $produtoId
             ]);
 
-            $unidadeProduto = $stmt->fetchColumn();
+            $produtoBanco =
+                $stmt->fetch();
 
-            if (!$unidadeProduto) {
+
+            if (!$produtoBanco) {
 
                 throw new Exception(
                     'Produto inválido.'
@@ -195,17 +257,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
 
+            $unidadeProduto =
+                $produtoBanco['unidade'];
+
+            $quantidadeTransferencia =
+                (float) $quantidade;
+
+
             /*
             |--------------------------------------------------------------------------
-            | QUANTIDADE INTEIRA PARA UNIDADE
+            | BLOQUEAR DECIMAL PARA PRODUTOS EM UNIDADE
             |--------------------------------------------------------------------------
             */
 
-            $quantidadeFloat = (float) $quantidade;
-
             if (
                 strtolower(trim($unidadeProduto)) === 'un' &&
-                floor($quantidadeFloat) != $quantidadeFloat
+                floor($quantidadeTransferencia) != $quantidadeTransferencia
             ) {
 
                 throw new Exception(
@@ -216,14 +283,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             /*
             |--------------------------------------------------------------------------
-            | VALIDAR DATA / HORÁRIO
+            | VALIDAR DATA E HORÁRIO
             |--------------------------------------------------------------------------
             */
 
-            $dataObjeto = DateTime::createFromFormat(
-                'Y-m-d\TH:i',
-                $data
-            );
+            $dataObjeto =
+                DateTime::createFromFormat(
+                    'Y-m-d\TH:i',
+                    $data
+                );
+
 
             if (!$dataObjeto) {
 
@@ -232,9 +301,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 );
             }
 
-            $dataBanco = $dataObjeto->format(
-                'Y-m-d H:i:s'
-            );
+
+            $dataBanco =
+                $dataObjeto->format(
+                    'Y-m-d H:i:s'
+                );
 
 
             /*
@@ -243,45 +314,108 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             |--------------------------------------------------------------------------
             */
 
-            if ($tipoEstoque === 'obra') {
+            $stmt = $pdo->prepare("
+                SELECT id
 
-                $stmt = $pdo->prepare("
-                    SELECT id
-                    FROM obras
-                    WHERE
-                        id = ?
-                        AND cliente_id = ?
-                        AND status = 'ativa'
-                    LIMIT 1
-                ");
+                FROM obras
 
-                $stmt->execute([
-                    $obraId,
-                    $clienteId
-                ]);
+                WHERE
+                    id = ?
+                    AND cliente_id = ?
+                    AND status = 'ativa'
 
-                $obraValida = $stmt->fetchColumn();
+                LIMIT 1
+            ");
 
-                if (!$obraValida) {
+            $stmt->execute([
+                $obraId,
+                $clienteId
+            ]);
 
-                    throw new Exception(
-                        'A obra selecionada não pertence ao cliente informado.'
-                    );
-                }
 
-            } else {
+            if (!$stmt->fetchColumn()) {
 
-                /*
-                 * Estoque geral nunca deve ter obra vinculada.
-                 */
-
-                $obraId = null;
+                throw new Exception(
+                    'A obra selecionada não pertence ao cliente informado.'
+                );
             }
 
 
             /*
             |--------------------------------------------------------------------------
-            | REGISTRAR ENTRADA
+            | INICIAR TRANSAÇÃO
+            |--------------------------------------------------------------------------
+            */
+
+            $pdo->beginTransaction();
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | CALCULAR ESTOQUE GERAL DISPONÍVEL
+            |--------------------------------------------------------------------------
+            */
+
+            $stmt = $pdo->prepare("
+                SELECT
+                    COALESCE(
+                        SUM(
+                            CASE
+
+                                WHEN tipo_estoque = 'geral'
+                                     AND tipo = 'entrada'
+                                    THEN quantidade
+
+                                WHEN tipo_estoque = 'geral'
+                                     AND tipo = 'saida'
+                                    THEN -quantidade
+
+                                ELSE 0
+
+                            END
+                        ),
+                        0
+                    ) AS saldo_geral
+
+                FROM movimentacoes
+
+                WHERE produto_id = ?
+            ");
+
+            $stmt->execute([
+                $produtoId
+            ]);
+
+            $saldoGeral =
+                (float) $stmt->fetchColumn();
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | VALIDAR SALDO
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                $quantidadeTransferencia >
+                $saldoGeral
+            ) {
+
+                throw new Exception(
+                    'Estoque geral insuficiente. Disponível: ' .
+                    formatarQuantidade(
+                        $saldoGeral,
+                        $unidadeProduto
+                    ) .
+                    ' ' .
+                    $unidadeProduto
+                );
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | 1 - SAÍDA DO ESTOQUE GERAL
             |--------------------------------------------------------------------------
             */
 
@@ -292,19 +426,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     obra_id,
                     tipo,
                     quantidade,
-                    fornecedor,
-                    documento,
+                    responsavel,
+                    destino,
                     observacao,
                     data_movimentacao
                 )
                 VALUES (
                     ?,
+                    'geral',
+                    NULL,
+                    'saida',
                     ?,
                     ?,
-                    'entrada',
-                    ?,
-                    ?,
-                    ?,
+                    'obra',
                     ?,
                     ?
                 )
@@ -312,14 +446,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $stmt->execute([
                 $produtoId,
-                $tipoEstoque,
-                $obraId,
-                $quantidadeFloat,
-                $fornecedor ?: null,
-                $documento ?: null,
-                $observacao ?: null,
+                $quantidadeTransferencia,
+                $responsavel ?: null,
+                $observacao
+                    ?: 'Separação de material para obra',
                 $dataBanco
             ]);
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | 2 - ENTRADA NA OBRA
+            |--------------------------------------------------------------------------
+            */
+
+            $stmt = $pdo->prepare("
+                INSERT INTO movimentacoes (
+                    produto_id,
+                    tipo_estoque,
+                    obra_id,
+                    tipo,
+                    quantidade,
+                    responsavel,
+                    destino,
+                    observacao,
+                    data_movimentacao
+                )
+                VALUES (
+                    ?,
+                    'obra',
+                    ?,
+                    'entrada',
+                    ?,
+                    ?,
+                    'obra',
+                    ?,
+                    ?
+                )
+            ");
+
+            $stmt->execute([
+                $produtoId,
+                $obraId,
+                $quantidadeTransferencia,
+                $responsavel ?: null,
+                $observacao
+                    ?: 'Material separado do estoque geral para obra',
+                $dataBanco
+            ]);
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | CONFIRMAR TRANSAÇÃO
+            |--------------------------------------------------------------------------
+            */
+
+            $pdo->commit();
 
 
             /*
@@ -329,18 +512,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             */
 
             header(
-                'Location: index.php?entrada=sucesso'
+                'Location: ../obras/detalhes.php?id=' .
+                urlencode($obraId) .
+                '&separado=sucesso'
             );
 
             exit;
 
-        } catch (Exception $e) {
-
-            $erro = $e->getMessage();
-
         } catch (PDOException $e) {
 
-            $erro = 'Erro ao registrar entrada.';
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            $erro =
+                'Erro ao separar material para a obra.';
+
+        } catch (Exception $e) {
+
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            $erro =
+                $e->getMessage();
         }
     }
 }
@@ -361,25 +556,25 @@ include '../../Includes/sidebar.php';
 <main class="content">
 
 
-    <!-- =========================
-         CABEÇALHO
-    ========================== -->
+    <!-- CABEÇALHO -->
 
     <div class="page-header">
 
         <div>
 
-            <h1>Nova entrada</h1>
+            <h1>
+                Separar para obra
+            </h1>
 
             <p>
-                Registre a entrada de material no almoxarifado.
+                Transfira material do estoque geral para uma obra específica.
             </p>
 
         </div>
 
 
         <a
-            href="index.php"
+            href="../produtos/index.php"
             class="btn-secondary"
         >
 
@@ -392,9 +587,7 @@ include '../../Includes/sidebar.php';
     </div>
 
 
-    <!-- =========================
-         ERRO
-    ========================== -->
+    <!-- ERRO -->
 
     <?php if ($erro): ?>
 
@@ -409,16 +602,13 @@ include '../../Includes/sidebar.php';
     <?php endif; ?>
 
 
-    <!-- =========================
-         FORMULÁRIO
-    ========================== -->
+    <!-- FORMULÁRIO -->
 
     <div class="form-card">
 
         <form
-            action=""
             method="POST"
-            id="entradaForm"
+            id="separarObraForm"
         >
 
             <div class="form-grid">
@@ -441,6 +631,7 @@ include '../../Includes/sidebar.php';
                         <option
                             value=""
                             data-unidade=""
+                            data-saldo="0"
                         >
                             Selecione o produto
                         </option>
@@ -448,22 +639,50 @@ include '../../Includes/sidebar.php';
 
                         <?php foreach ($produtos as $produto): ?>
 
+                            <?php
+
+                            $produtoAtual =
+                                $_POST['produto_id']
+                                ?? $produtoSelecionado;
+
+                            ?>
+
                             <option
                                 value="<?= $produto['id'] ?>"
-                                data-unidade="<?= htmlspecialchars($produto['unidade']) ?>"
-                                <?= (
-                                    ($_POST['produto_id'] ?? $produtoSelecionado)
-                                    == $produto['id']
-                                )
+
+                                data-unidade="<?= htmlspecialchars(
+                                    $produto['unidade']
+                                ) ?>"
+
+                                data-saldo="<?= htmlspecialchars(
+                                    $produto['saldo_geral']
+                                ) ?>"
+
+                                <?= $produtoAtual == $produto['id']
                                     ? 'selected'
                                     : '' ?>
                             >
 
-                                <?= htmlspecialchars($produto['codigo']) ?>
+                                <?= htmlspecialchars(
+                                    $produto['codigo']
+                                ) ?>
 
                                 -
 
-                                <?= htmlspecialchars($produto['nome']) ?>
+                                <?= htmlspecialchars(
+                                    $produto['nome']
+                                ) ?>
+
+                                (Disponível:
+
+                                <?= formatarQuantidade(
+                                    $produto['saldo_geral'],
+                                    $produto['unidade']
+                                ) ?>
+
+                                <?= htmlspecialchars(
+                                    $produto['unidade']
+                                ) ?>)
 
                             </option>
 
@@ -488,7 +707,7 @@ include '../../Includes/sidebar.php';
                         name="quantidade"
                         min="0.01"
                         step="0.01"
-                        placeholder="Ex: 50"
+                        placeholder="Ex: 20"
                         value="<?= htmlspecialchars(
                             $_POST['quantidade'] ?? ''
                         ) ?>"
@@ -503,7 +722,7 @@ include '../../Includes/sidebar.php';
                 </div>
 
 
-                <!-- DATA / HORÁRIO -->
+                <!-- DATA E HORÁRIO -->
 
                 <div class="form-group">
 
@@ -525,269 +744,146 @@ include '../../Includes/sidebar.php';
                 </div>
 
 
-                <!-- =========================
-                     DESTINO DO MATERIAL
-                ========================== -->
+                <!-- CLIENTE -->
 
-                <div class="form-group full">
+                <div class="form-group">
 
-                    <label>
-                        Destino do material *
+                    <label for="cliente_id">
+                        Cliente *
                     </label>
 
+                    <select
+                        id="cliente_id"
+                        name="cliente_id"
+                        required
+                    >
 
-                    <div class="stock-destination-options">
+                        <option value="">
+                            Selecione o cliente
+                        </option>
 
 
-                        <!-- ESTOQUE GERAL -->
+                        <?php foreach ($clientes as $cliente): ?>
 
-                        <label class="stock-destination-card">
+                            <option
+                                value="<?= $cliente['id'] ?>"
 
-                            <input
-                                type="radio"
-                                name="tipo_estoque"
-                                value="geral"
-                                <?= $tipoEstoqueSelecionado === 'geral'
-                                    ? 'checked'
+                                <?= $clienteSelecionado == $cliente['id']
+                                    ? 'selected'
                                     : '' ?>
                             >
 
-                            <div class="stock-destination-content">
+                                <?= htmlspecialchars(
+                                    $cliente['nome']
+                                ) ?>
 
-                                <div class="stock-destination-icon general">
+                            </option>
 
-                                    <i class="bi bi-box-seam"></i>
+                        <?php endforeach; ?>
 
-                                </div>
-
-
-                                <div>
-
-                                    <strong>
-                                        Estoque geral
-                                    </strong>
-
-                                    <span>
-                                        Material disponível para uso geral.
-                                    </span>
-
-                                </div>
-
-                            </div>
-
-                        </label>
-
-
-                        <!-- MATERIAL DE OBRA -->
-
-                        <label class="stock-destination-card">
-
-                            <input
-                                type="radio"
-                                name="tipo_estoque"
-                                value="obra"
-                                <?= $tipoEstoqueSelecionado === 'obra'
-                                    ? 'checked'
-                                    : '' ?>
-                            >
-
-                            <div class="stock-destination-content">
-
-                                <div class="stock-destination-icon work">
-
-                                    <i class="bi bi-buildings"></i>
-
-                                </div>
-
-
-                                <div>
-
-                                    <strong>
-                                        Obra / Cliente
-                                    </strong>
-
-                                    <span>
-                                        Material reservado para uma obra específica.
-                                    </span>
-
-                                </div>
-
-                            </div>
-
-                        </label>
-
-
-                    </div>
+                    </select>
 
                 </div>
 
 
-                <!-- =========================
-                     CLIENTE / OBRA
-                ========================== -->
+                <!-- OBRA -->
 
-                <div
-                    class="work-destination-fields full"
-                    id="workDestinationFields"
-                >
+                <div class="form-group">
 
-                    <div class="work-destination-header">
+                    <label for="obra_id">
+                        Obra *
+                    </label>
 
-                        <i class="bi bi-building-check"></i>
+                    <select
+                        id="obra_id"
+                        name="obra_id"
+                        required
+                    >
+
+                        <option value="">
+                            Selecione primeiro o cliente
+                        </option>
+
+
+                        <?php foreach ($obras as $obra): ?>
+
+                            <option
+                                value="<?= $obra['id'] ?>"
+
+                                data-cliente="<?= $obra['cliente_id'] ?>"
+
+                                <?= $obraSelecionada == $obra['id']
+                                    ? 'selected'
+                                    : '' ?>
+                            >
+
+                                <?php if ($obra['codigo']): ?>
+
+                                    <?= htmlspecialchars(
+                                        $obra['codigo']
+                                    ) ?>
+
+                                    -
+
+                                <?php endif; ?>
+
+
+                                <?= htmlspecialchars(
+                                    $obra['nome']
+                                ) ?>
+
+                            </option>
+
+                        <?php endforeach; ?>
+
+                    </select>
+
+                </div>
+
+
+                <!-- RESPONSÁVEL -->
+
+                <div class="form-group full">
+
+                    <label for="responsavel">
+                        Responsável
+                    </label>
+
+                    <input
+                        type="text"
+                        id="responsavel"
+                        name="responsavel"
+                        placeholder="Nome do responsável"
+                        value="<?= htmlspecialchars(
+                            $_POST['responsavel'] ?? ''
+                        ) ?>"
+                    >
+
+                </div>
+
+
+                <!-- INFORMAÇÃO -->
+
+                <div class="form-group full">
+
+                    <div class="stock-exit-notice">
+
+                        <i class="bi bi-arrow-left-right"></i>
 
                         <div>
 
                             <strong>
-                                Identificação da obra
+                                Transferência de estoque
                             </strong>
 
                             <span>
-                                Escolha o cliente e depois a obra.
+                                O material será retirado do estoque geral e reservado para a obra.
+                                O total físico do produto não será alterado.
                             </span>
 
                         </div>
 
                     </div>
-
-
-                    <div class="work-destination-grid">
-
-
-                        <!-- CLIENTE -->
-
-                        <div class="form-group">
-
-                            <label for="cliente_id">
-                                Cliente *
-                            </label>
-
-                            <select
-                                id="cliente_id"
-                                name="cliente_id"
-                            >
-
-                                <option value="">
-                                    Selecione o cliente
-                                </option>
-
-
-                                <?php foreach ($clientes as $cliente): ?>
-
-                                    <option
-                                        value="<?= $cliente['id'] ?>"
-                                        <?= $clienteSelecionado == $cliente['id']
-                                            ? 'selected'
-                                            : '' ?>
-                                    >
-
-                                        <?= htmlspecialchars(
-                                            $cliente['nome']
-                                        ) ?>
-
-                                    </option>
-
-                                <?php endforeach; ?>
-
-                            </select>
-
-                        </div>
-
-
-                        <!-- OBRA -->
-
-                        <div class="form-group">
-
-                            <label for="obra_id">
-                                Obra *
-                            </label>
-
-                            <select
-                                id="obra_id"
-                                name="obra_id"
-                            >
-
-                                <option value="">
-                                    Selecione primeiro o cliente
-                                </option>
-
-
-                                <?php foreach ($obras as $obra): ?>
-
-                                    <option
-                                        value="<?= $obra['id'] ?>"
-                                        data-cliente="<?= $obra['cliente_id'] ?>"
-                                        <?= $obraSelecionada == $obra['id']
-                                            ? 'selected'
-                                            : '' ?>
-                                    >
-
-                                        <?php if ($obra['codigo']): ?>
-
-                                            <?= htmlspecialchars(
-                                                $obra['codigo']
-                                            ) ?>
-
-                                            -
-
-                                        <?php endif; ?>
-
-
-                                        <?= htmlspecialchars(
-                                            $obra['nome']
-                                        ) ?>
-
-                                    </option>
-
-                                <?php endforeach; ?>
-
-                            </select>
-
-                        </div>
-
-
-                    </div>
-
-                </div>
-
-
-                <!-- FORNECEDOR -->
-
-                <div class="form-group">
-
-                    <label for="fornecedor">
-                        Fornecedor
-                    </label>
-
-                    <input
-                        type="text"
-                        id="fornecedor"
-                        name="fornecedor"
-                        placeholder="Ex: Fornecedor ABC"
-                        value="<?= htmlspecialchars(
-                            $_POST['fornecedor'] ?? ''
-                        ) ?>"
-                    >
-
-                </div>
-
-
-                <!-- DOCUMENTO -->
-
-                <div class="form-group">
-
-                    <label for="documento">
-                        Nota / Documento
-                    </label>
-
-                    <input
-                        type="text"
-                        id="documento"
-                        name="documento"
-                        placeholder="Ex: NF 12584"
-                        value="<?= htmlspecialchars(
-                            $_POST['documento'] ?? ''
-                        ) ?>"
-                    >
 
                 </div>
 
@@ -804,7 +900,7 @@ include '../../Includes/sidebar.php';
                         id="observacao"
                         name="observacao"
                         rows="4"
-                        placeholder="Informações adicionais sobre a entrada..."
+                        placeholder="Informações sobre a separação..."
                     ><?= htmlspecialchars(
                         $_POST['observacao'] ?? ''
                     ) ?></textarea>
@@ -815,14 +911,12 @@ include '../../Includes/sidebar.php';
             </div>
 
 
-            <!-- =========================
-                 AÇÕES
-            ========================== -->
+            <!-- AÇÕES -->
 
             <div class="form-actions">
 
                 <a
-                    href="index.php"
+                    href="../produtos/index.php"
                     class="btn-secondary"
                 >
                     Cancelar
@@ -831,12 +925,12 @@ include '../../Includes/sidebar.php';
 
                 <button
                     type="submit"
-                    class="btn-entry"
+                    class="btn-primary"
                 >
 
-                    <i class="bi bi-arrow-down-circle"></i>
+                    <i class="bi bi-buildings"></i>
 
-                    Registrar entrada
+                    Separar para obra
 
                 </button>
 
@@ -846,6 +940,7 @@ include '../../Includes/sidebar.php';
 
     </div>
 
+
 </main>
 
 
@@ -854,22 +949,6 @@ include '../../Includes/sidebar.php';
 document.addEventListener(
     'DOMContentLoaded',
     function () {
-
-        /*
-        |--------------------------------------------------------------------------
-        | ELEMENTOS
-        |--------------------------------------------------------------------------
-        */
-
-        const tipoEstoque =
-            document.querySelectorAll(
-                'input[name="tipo_estoque"]'
-            );
-
-        const workFields =
-            document.getElementById(
-                'workDestinationFields'
-            );
 
         const clienteSelect =
             document.getElementById(
@@ -910,39 +989,86 @@ document.addEventListener(
                     produtoSelect.selectedIndex
                 ];
 
+
             if (!option) {
                 return;
             }
 
+
+            const unidadeOriginal =
+                option.dataset.unidade || '';
+
             const unidade =
-                (
-                    option.dataset.unidade
-                    || ''
-                )
+                unidadeOriginal
                 .trim()
                 .toLowerCase();
 
+            const saldo =
+                parseFloat(
+                    option.dataset.saldo || '0'
+                );
+
+
+            /*
+            | PRODUTO EM UNIDADE
+            */
 
             if (unidade === 'un') {
 
                 quantidadeInput.step = '1';
                 quantidadeInput.min = '1';
 
+                quantidadeInput.max =
+                    Math.floor(saldo);
+
+
                 quantityHelp.textContent =
-                    'Este produto aceita apenas quantidades inteiras.';
+                    'Somente números inteiros. Disponível: ' +
+                    Math.floor(saldo) +
+                    ' un';
+
+
+            /*
+            | PRODUTO DECIMAL
+            */
 
             } else if (unidade !== '') {
 
                 quantidadeInput.step = '0.01';
                 quantidadeInput.min = '0.01';
 
+                quantidadeInput.max =
+                    saldo.toFixed(2);
+
+
                 quantityHelp.textContent =
-                    'Este produto aceita quantidades decimais.';
+                    'Disponível: ' +
+                    saldo.toLocaleString(
+                        'pt-BR',
+                        {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                        }
+                    ) +
+                    ' ' +
+                    unidadeOriginal;
+
+
+            /*
+            | NENHUM PRODUTO
+            */
 
             } else {
 
-                quantidadeInput.step = '0.01';
-                quantidadeInput.min = '0.01';
+                quantidadeInput.removeAttribute(
+                    'max'
+                );
+
+                quantidadeInput.step =
+                    '0.01';
+
+                quantidadeInput.min =
+                    '0.01';
 
                 quantityHelp.textContent = '';
             }
@@ -958,7 +1084,7 @@ document.addEventListener(
 
         /*
         |--------------------------------------------------------------------------
-        | GUARDAR TODAS AS OBRAS
+        | GUARDAR OBRAS
         |--------------------------------------------------------------------------
         */
 
@@ -969,9 +1095,16 @@ document.addEventListener(
         ).map(function (option) {
 
             return {
-                value: option.value,
-                cliente: option.dataset.cliente,
-                texto: option.textContent.trim()
+
+                value:
+                    option.value,
+
+                cliente:
+                    option.dataset.cliente,
+
+                texto:
+                    option.textContent.trim()
+
             };
 
         });
@@ -979,51 +1112,7 @@ document.addEventListener(
 
         /*
         |--------------------------------------------------------------------------
-        | MOSTRAR / ESCONDER CAMPOS DE OBRA
-        |--------------------------------------------------------------------------
-        */
-
-        function atualizarTipoEstoque() {
-
-            const selecionado =
-                document.querySelector(
-                    'input[name="tipo_estoque"]:checked'
-                );
-
-            if (!selecionado) {
-                return;
-            }
-
-
-            if (selecionado.value === 'obra') {
-
-                workFields.classList.add(
-                    'active'
-                );
-
-                clienteSelect.required = true;
-                obraSelect.required = true;
-
-            } else {
-
-                workFields.classList.remove(
-                    'active'
-                );
-
-                clienteSelect.required = false;
-                obraSelect.required = false;
-
-                clienteSelect.value = '';
-
-                atualizarObras('');
-            }
-
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | FILTRAR OBRAS PELO CLIENTE
+        | ATUALIZAR OBRAS
         |--------------------------------------------------------------------------
         */
 
@@ -1127,7 +1216,7 @@ document.addEventListener(
 
         /*
         |--------------------------------------------------------------------------
-        | EVENTO CLIENTE
+        | ALTERAR CLIENTE
         |--------------------------------------------------------------------------
         */
 
@@ -1145,43 +1234,17 @@ document.addEventListener(
 
         /*
         |--------------------------------------------------------------------------
-        | EVENTO DESTINO
-        |--------------------------------------------------------------------------
-        */
-
-        tipoEstoque.forEach(
-            function (radio) {
-
-                radio.addEventListener(
-                    'change',
-                    atualizarTipoEstoque
-                );
-
-            }
-        );
-
-
-        /*
-        |--------------------------------------------------------------------------
         | ESTADO INICIAL
         |--------------------------------------------------------------------------
         */
 
-        const clienteInicial =
-            clienteSelect.value;
-
-        const obraInicial =
+        atualizarObras(
+            clienteSelect.value,
             <?= json_encode(
                 (string) $obraSelecionada
-            ) ?>;
-
-
-        atualizarObras(
-            clienteInicial,
-            obraInicial
+            ) ?>
         );
 
-        atualizarTipoEstoque();
 
         atualizarQuantidade();
 

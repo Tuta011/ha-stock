@@ -11,6 +11,7 @@ require_once '../../Config/database.php';
 
 $busca = trim($_GET['busca'] ?? '');
 $tipo = $_GET['tipo'] ?? '';
+$tipoEstoque = $_GET['tipo_estoque'] ?? '';
 
 
 /*
@@ -23,6 +24,8 @@ $sql = "
     SELECT
         m.id,
         m.tipo,
+        m.tipo_estoque,
+        m.obra_id,
         m.quantidade,
         m.fornecedor,
         m.documento,
@@ -34,12 +37,23 @@ $sql = "
 
         p.codigo,
         p.nome AS produto,
-        p.unidade
+        p.unidade,
+
+        o.codigo AS obra_codigo,
+        o.nome AS obra_nome,
+
+        c.nome AS cliente_nome
 
     FROM movimentacoes m
 
     INNER JOIN produtos p
         ON p.id = m.produto_id
+
+    LEFT JOIN obras o
+        ON o.id = m.obra_id
+
+    LEFT JOIN clientes c
+        ON c.id = o.cliente_id
 
     WHERE 1 = 1
 ";
@@ -69,6 +83,9 @@ if ($busca !== '') {
             OR m.responsavel LIKE :busca
             OR m.fornecedor LIKE :busca
             OR m.destino LIKE :busca
+            OR o.nome LIKE :busca
+            OR o.codigo LIKE :busca
+            OR c.nome LIKE :busca
         )
     ";
 
@@ -89,6 +106,25 @@ if ($tipo === 'entrada' || $tipo === 'saida') {
     ";
 
     $parametros['tipo'] = $tipo;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| FILTRO POR TIPO DE ESTOQUE
+|--------------------------------------------------------------------------
+*/
+
+if (
+    $tipoEstoque === 'geral' ||
+    $tipoEstoque === 'obra'
+) {
+
+    $sql .= "
+        AND m.tipo_estoque = :tipo_estoque
+    ";
+
+    $parametros['tipo_estoque'] = $tipoEstoque;
 }
 
 
@@ -157,6 +193,7 @@ include '../../Includes/sidebar.php';
     <?php endif; ?>
 
 
+
     <!-- =========================
          CABEÇALHO
     ========================== -->
@@ -178,24 +215,31 @@ include '../../Includes/sidebar.php';
 
             <a
                 href="entrada.php"
-                class="btn-secondary">
+                class="btn-secondary"
+            >
+
                 <i class="bi bi-arrow-down-circle"></i>
 
                 Nova entrada
+
             </a>
 
 
             <a
                 href="saida.php"
-                class="btn-primary">
+                class="btn-primary"
+            >
+
                 <i class="bi bi-arrow-up-circle"></i>
 
                 Nova saída
+
             </a>
 
         </div>
 
     </div>
+
 
 
     <!-- =========================
@@ -205,7 +249,9 @@ include '../../Includes/sidebar.php';
     <form
         method="GET"
         action="index.php"
-        class="movimentacoes-filtros">
+        class="movimentacoes-filtros"
+    >
+
 
         <!-- PESQUISA -->
 
@@ -217,9 +263,11 @@ include '../../Includes/sidebar.php';
                 type="text"
                 name="busca"
                 placeholder="Pesquisar movimentação..."
-                value="<?= htmlspecialchars($busca) ?>">
+                value="<?= htmlspecialchars($busca) ?>"
+            >
 
         </div>
+
 
 
         <!-- TIPO -->
@@ -230,30 +278,68 @@ include '../../Includes/sidebar.php';
                 Todos os tipos
             </option>
 
+
             <option
                 value="entrada"
                 <?= $tipo === 'entrada'
                     ? 'selected'
-                    : '' ?>>
+                    : '' ?>
+            >
                 Entradas
             </option>
+
 
             <option
                 value="saida"
                 <?= $tipo === 'saida'
                     ? 'selected'
-                    : '' ?>>
+                    : '' ?>
+            >
                 Saídas
             </option>
 
         </select>
 
 
+
+        <!-- TIPO DE ESTOQUE -->
+
+        <select name="tipo_estoque">
+
+            <option value="">
+                Todos os estoques
+            </option>
+
+
+            <option
+                value="geral"
+                <?= $tipoEstoque === 'geral'
+                    ? 'selected'
+                    : '' ?>
+            >
+                Estoque geral
+            </option>
+
+
+            <option
+                value="obra"
+                <?= $tipoEstoque === 'obra'
+                    ? 'selected'
+                    : '' ?>
+            >
+                Material de obra
+            </option>
+
+        </select>
+
+
+
         <!-- FILTRAR -->
 
         <button
             type="submit"
-            class="filter-button">
+            class="filter-button"
+        >
 
             <i class="bi bi-funnel"></i>
 
@@ -262,16 +348,19 @@ include '../../Includes/sidebar.php';
         </button>
 
 
+
         <!-- LIMPAR -->
 
         <?php if (
             $busca !== '' ||
-            $tipo !== ''
+            $tipo !== '' ||
+            $tipoEstoque !== ''
         ): ?>
 
             <a
                 href="index.php"
-                class="clear-filter">
+                class="clear-filter"
+            >
 
                 <i class="bi bi-x-lg"></i>
 
@@ -282,6 +371,7 @@ include '../../Includes/sidebar.php';
         <?php endif; ?>
 
     </form>
+
 
 
     <!-- =========================
@@ -318,92 +408,102 @@ include '../../Includes/sidebar.php';
             <tbody>
 
 
-                <?php if (empty($movimentacoes)): ?>
+            <?php if (empty($movimentacoes)): ?>
+
+
+                <tr>
+
+                    <td
+                        colspan="7"
+                        class="empty-table"
+                    >
+
+                        <i class="bi bi-search"></i>
+
+                        Nenhuma movimentação encontrada.
+
+                    </td>
+
+                </tr>
+
+
+            <?php else: ?>
+
+
+                <?php foreach ($movimentacoes as $movimentacao): ?>
+
+
+                    <?php
+
+                    $entrada =
+                        $movimentacao['tipo'] === 'entrada';
+
+                    $obra =
+                        $movimentacao['tipo_estoque'] === 'obra';
+
+                    $quantidade =
+                        number_format(
+                            $movimentacao['quantidade'],
+                            2,
+                            ',',
+                            '.'
+                        );
+
+                    ?>
 
 
                     <tr>
 
-                        <td
-                            colspan="7"
-                            class="empty-table">
 
-                            <i class="bi bi-search"></i>
+                        <!-- =========================
+                             PRODUTO
+                        ========================== -->
 
-                            Nenhuma movimentação encontrada.
+                        <td>
 
-                        </td>
+                            <div class="table-product">
 
-                    </tr>
+                                <div class="product-icon">
 
-
-                <?php else: ?>
-
-
-                    <?php foreach ($movimentacoes as $movimentacao): ?>
-
-
-                        <?php
-
-                        $entrada =
-                            $movimentacao['tipo'] === 'entrada';
-
-
-                        $quantidade =
-                            number_format(
-                                $movimentacao['quantidade'],
-                                2,
-                                ',',
-                                '.'
-                            );
-
-                        ?>
-
-
-                        <tr>
-
-
-                            <!-- PRODUTO -->
-
-                            <td>
-
-                                <div class="table-product">
-
-                                    <div class="product-icon">
-
-                                        <i class="bi bi-box"></i>
-
-                                    </div>
-
-
-                                    <div class="movement-product-info">
-
-                                        <strong>
-
-                                            <?= htmlspecialchars(
-                                                $movimentacao['produto']
-                                            ) ?>
-
-                                        </strong>
-
-
-                                        <small>
-
-                                            <?= htmlspecialchars(
-                                                $movimentacao['codigo']
-                                            ) ?>
-
-                                        </small>
-
-                                    </div>
+                                    <i class="bi bi-box"></i>
 
                                 </div>
 
-                            </td>
+
+                                <div class="movement-product-info">
+
+                                    <strong>
+
+                                        <?= htmlspecialchars(
+                                            $movimentacao['produto']
+                                        ) ?>
+
+                                    </strong>
 
 
-                            <!-- TIPO -->
+                                    <small>
 
-                            <td>
+                                        <?= htmlspecialchars(
+                                            $movimentacao['codigo']
+                                        ) ?>
+
+                                    </small>
+
+                                </div>
+
+                            </div>
+
+                        </td>
+
+
+
+                        <!-- =========================
+                             TIPO
+                        ========================== -->
+
+                        <td>
+
+                            <div class="movement-type-wrapper">
 
 
                                 <?php if ($entrada): ?>
@@ -411,9 +511,10 @@ include '../../Includes/sidebar.php';
 
                                     <span
                                         class="
-                                        movement-status
-                                        movement-entry
-                                    ">
+                                            movement-status
+                                            movement-entry
+                                        "
+                                    >
 
                                         Entrada
 
@@ -425,9 +526,10 @@ include '../../Includes/sidebar.php';
 
                                     <span
                                         class="
-                                        movement-status
-                                        movement-exit
-                                    ">
+                                            movement-status
+                                            movement-exit
+                                        "
+                                    >
 
                                         Saída
 
@@ -437,122 +539,251 @@ include '../../Includes/sidebar.php';
                                 <?php endif; ?>
 
 
-                            </td>
+
+                                <?php if ($obra): ?>
 
 
-                            <!-- QUANTIDADE -->
+                                    <span
+                                        class="
+                                            movement-stock
+                                            movement-work
+                                        "
+                                    >
 
-                            <td
-                                class="
+                                        <i class="bi bi-buildings"></i>
+
+                                        Obra
+
+                                    </span>
+
+
+                                <?php else: ?>
+
+
+                                    <span
+                                        class="
+                                            movement-stock
+                                            movement-general
+                                        "
+                                    >
+
+                                        Geral
+
+                                    </span>
+
+
+                                <?php endif; ?>
+
+
+                            </div>
+
+                        </td>
+
+
+
+                        <!-- =========================
+                             QUANTIDADE
+                        ========================== -->
+
+                        <td
+                            class="
                                 movement-quantity
                                 <?= $entrada
                                     ? 'entrada'
                                     : 'saida' ?>
-                            ">
+                            "
+                        >
 
-                                <?= $entrada ? '+' : '-' ?>
+                            <?= $entrada ? '+' : '-' ?>
 
-                                <?= $quantidade ?>
+                            <?= $quantidade ?>
+
+                            <?= htmlspecialchars(
+                                $movimentacao['unidade']
+                            ) ?>
+
+                        </td>
+
+
+
+                        <!-- =========================
+                             ORIGEM / RESPONSÁVEL
+                        ========================== -->
+
+                        <td>
+
+
+                            <?php if ($entrada): ?>
+
 
                                 <?= htmlspecialchars(
-                                    $movimentacao['unidade']
+                                    $movimentacao['fornecedor']
+                                    ?: '-'
                                 ) ?>
 
-                            </td>
+
+                            <?php else: ?>
 
 
-                            <!-- ORIGEM / RESPONSÁVEL -->
-
-                            <td>
-
-
-                                <?php if ($entrada): ?>
+                                <?= htmlspecialchars(
+                                    $movimentacao['responsavel']
+                                    ?: '-'
+                                ) ?>
 
 
-                                    <?= htmlspecialchars(
-                                        $movimentacao['fornecedor']
-                                            ?: '-'
-                                    ) ?>
+                            <?php endif; ?>
+
+
+                        </td>
+
+
+
+                        <!-- =========================
+                             DESTINO
+                        ========================== -->
+
+                        <td>
+
+
+                            <?php if ($obra): ?>
+
+
+                                <?php if ($movimentacao['obra_id']): ?>
+
+
+                                    <a
+                                        href="../obras/detalhes.php?id=<?= $movimentacao['obra_id'] ?>"
+                                        class="movement-work-link"
+                                    >
+
+
+                                        <div class="movement-work-icon">
+
+                                            <i class="bi bi-buildings"></i>
+
+                                        </div>
+
+
+                                        <div>
+
+                                            <strong>
+
+                                                <?= htmlspecialchars(
+                                                    $movimentacao['obra_nome']
+                                                    ?: 'Obra'
+                                                ) ?>
+
+                                            </strong>
+
+
+                                            <?php if (
+                                                $movimentacao['cliente_nome']
+                                            ): ?>
+
+                                                <small>
+
+                                                    <?= htmlspecialchars(
+                                                        $movimentacao['cliente_nome']
+                                                    ) ?>
+
+                                                </small>
+
+                                            <?php endif; ?>
+
+
+                                        </div>
+
+                                    </a>
 
 
                                 <?php else: ?>
 
 
-                                    <?= htmlspecialchars(
-                                        $movimentacao['responsavel']
-                                            ?: '-'
-                                    ) ?>
+                                    <span class="movement-work-warning">
+
+                                        <i class="bi bi-exclamation-triangle"></i>
+
+                                        Obra não informada
+
+                                    </span>
 
 
                                 <?php endif; ?>
 
 
-                            </td>
+                            <?php elseif ($entrada): ?>
 
 
-                            <!-- DESTINO -->
+                                <span class="movement-general-destination">
 
-                            <td>
-
-
-                                <?php if ($entrada): ?>
-
+                                    <i class="bi bi-box-seam"></i>
 
                                     Almoxarifado
 
-
-                                <?php else: ?>
-
-
-                                    <?= htmlspecialchars(
-                                        ucfirst(
-                                            $movimentacao['destino']
-                                                ?: '-'
-                                        )
-                                    ) ?>
+                                </span>
 
 
-                                <?php endif; ?>
+                            <?php else: ?>
 
 
-                            </td>
-
-
-                            <!-- DATA -->
-
-                            <td>
-
-                                <?= date(
-                                    'd/m/Y',
-                                    strtotime(
-                                        $movimentacao['data_movimentacao']
+                                <?= htmlspecialchars(
+                                    ucfirst(
+                                        $movimentacao['destino']
+                                        ?: '-'
                                     )
                                 ) ?>
 
-                            </td>
+
+                            <?php endif; ?>
 
 
-                            <!-- AÇÕES -->
-
-                            <td>
-
-                                <a
-                                    href="detalhes.php?id=<?= $movimentacao['id'] ?>"
-                                    class="movement-detail-button"
-                                    title="Ver detalhes">
-                                    <i class="bi bi-eye"></i>
-                                </a>
-
-                            </td>
+                        </td>
 
 
-                        </tr>
+
+                        <!-- =========================
+                             DATA
+                        ========================== -->
+
+                        <td>
+
+                            <?= date(
+                                'd/m/Y',
+                                strtotime(
+                                    $movimentacao['data_movimentacao']
+                                )
+                            ) ?>
+
+                        </td>
 
 
-                    <?php endforeach; ?>
+
+                        <!-- =========================
+                             AÇÕES
+                        ========================== -->
+
+                        <td>
+
+                            <a
+                                href="detalhes.php?id=<?= $movimentacao['id'] ?>"
+                                class="movement-detail-button"
+                                title="Ver detalhes"
+                            >
+
+                                <i class="bi bi-eye"></i>
+
+                            </a>
+
+                        </td>
 
 
-                <?php endif; ?>
+                    </tr>
+
+
+                <?php endforeach; ?>
+
+
+            <?php endif; ?>
 
 
             </tbody>

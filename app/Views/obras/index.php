@@ -42,7 +42,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ) {
 
         $erro = 'Informe o cliente e o nome da obra.';
-
     } else {
 
         try {
@@ -70,15 +69,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             header('Location: index.php?sucesso=1');
             exit;
-
         } catch (PDOException $e) {
 
             $erro = 'Erro ao cadastrar obra.';
-
         }
-
     }
-
 }
 
 
@@ -188,8 +183,7 @@ include '../../Includes/sidebar.php';
                     <select
                         id="cliente_id"
                         name="cliente_id"
-                        required
-                    >
+                        required>
 
                         <option value="">
                             Selecione o cliente
@@ -225,8 +219,7 @@ include '../../Includes/sidebar.php';
                         type="text"
                         id="codigo"
                         name="codigo"
-                        placeholder="Ex: OBR001"
-                    >
+                        placeholder="Ex: OBR001">
 
                 </div>
 
@@ -244,8 +237,7 @@ include '../../Includes/sidebar.php';
                         id="nome"
                         name="nome"
                         placeholder="Ex: Residência Alphaville"
-                        required
-                    >
+                        required>
 
                 </div>
 
@@ -262,8 +254,7 @@ include '../../Includes/sidebar.php';
                         type="text"
                         id="endereco"
                         name="endereco"
-                        placeholder="Rua, número, bairro..."
-                    >
+                        placeholder="Rua, número, bairro...">
 
                 </div>
 
@@ -280,8 +271,7 @@ include '../../Includes/sidebar.php';
                         type="text"
                         id="cidade"
                         name="cidade"
-                        placeholder="Ex: São Paulo"
-                    >
+                        placeholder="Ex: São Paulo">
 
                 </div>
 
@@ -298,16 +288,14 @@ include '../../Includes/sidebar.php';
                         id="observacoes"
                         name="observacoes"
                         rows="4"
-                        placeholder="Informações adicionais sobre a obra..."
-                    ></textarea>
+                        placeholder="Informações adicionais sobre a obra..."></textarea>
 
                 </div>
 
 
                 <button
                     type="submit"
-                    class="btn-primary work-submit"
-                >
+                    class="btn-primary work-submit">
 
                     <i class="bi bi-plus-lg"></i>
 
@@ -354,6 +342,7 @@ include '../../Includes/sidebar.php';
                             <th>Cidade</th>
                             <th>Status</th>
                             <th>Cadastro</th>
+                            <th>Ações</th>
                         </tr>
 
                     </thead>
@@ -362,140 +351,152 @@ include '../../Includes/sidebar.php';
                     <tbody>
 
 
-                    <?php if (empty($obras)): ?>
-
-                        <tr>
-
-                            <td
-                                colspan="5"
-                                class="empty-table"
-                            >
-
-                                Nenhuma obra cadastrada.
-
-                            </td>
-
-                        </tr>
-
-
-                    <?php else: ?>
-
-
-                        <?php foreach ($obras as $obra): ?>
+                        <?php if (empty($obras)): ?>
 
                             <tr>
 
+                                <td
+                                    colspan="6"
+                                    class="empty-table">
 
-                                <!-- OBRA -->
-
-                                <td>
-
-                                    <div class="work-name">
-
-                                        <div class="work-icon">
-
-                                            <i class="bi bi-building"></i>
-
-                                        </div>
-
-
-                                        <div>
-
-                                            <strong>
-
-                                                <?= htmlspecialchars(
-                                                    $obra['nome']
-                                                ) ?>
-
-                                            </strong>
-
-
-                                            <?php if ($obra['codigo']): ?>
-
-                                                <small>
-
-                                                    <?= htmlspecialchars(
-                                                        $obra['codigo']
-                                                    ) ?>
-
-                                                </small>
-
-                                            <?php endif; ?>
-
-                                        </div>
-
-                                    </div>
+                                    Nenhuma obra cadastrada.
 
                                 </td>
-
-
-                                <!-- CLIENTE -->
-
-                                <td>
-
-                                    <?= htmlspecialchars(
-                                        $obra['cliente']
-                                    ) ?>
-
-                                </td>
-
-
-                                <!-- CIDADE -->
-
-                                <td>
-
-                                    <?= htmlspecialchars(
-                                        $obra['cidade'] ?: '-'
-                                    ) ?>
-
-                                </td>
-
-
-                                <!-- STATUS -->
-
-                                <td>
-
-                                    <?php if ($obra['status'] === 'ativa'): ?>
-
-                                        <span class="work-status active">
-                                            Ativa
-                                        </span>
-
-                                    <?php elseif ($obra['status'] === 'finalizada'): ?>
-
-                                        <span class="work-status finished">
-                                            Finalizada
-                                        </span>
-
-                                    <?php else: ?>
-
-                                        <span class="work-status cancelled">
-                                            Cancelada
-                                        </span>
-
-                                    <?php endif; ?>
-
-                                </td>
-
-
-                                <!-- CADASTRO -->
-
-                                <td>
-
-                                    <?= date(
-                                        'd/m/Y',
-                                        strtotime($obra['created_at'])
-                                    ) ?>
-
-                                </td>
-
 
                             </tr>
 
-                        <?php endforeach; ?>
+
+                        <?php else: ?>
 
 
-                    <?php endif; ?>
+                            <?php foreach ($obras as $obra): ?>
+
+                                <tr>
+
+
+                                    <!-- OBRA -->
+
+                                    <td>
+
+                                        <div class="work-name">
+
+                                            <div class="work-icon">
+
+                                                <i class="bi bi-building"></i>
+
+                                            </div>
+
+
+                                            <div>
+
+                                                <strong>
+
+                                                    <?= htmlspecialchars(
+                                                        $obra['nome']
+                                                    ) ?>
+
+                                                </strong>
+
+
+                                                <?php if ($obra['codigo']): ?>
+
+                                                    <small>
+
+                                                        <?= htmlspecialchars(
+                                                            $obra['codigo']
+                                                        ) ?>
+
+                                                    </small>
+
+                                                <?php endif; ?>
+
+                                            </div>
+
+                                        </div>
+
+                                    </td>
+
+
+                                    <!-- CLIENTE -->
+
+                                    <td>
+
+                                        <?= htmlspecialchars(
+                                            $obra['cliente']
+                                        ) ?>
+
+                                    </td>
+
+
+                                    <!-- CIDADE -->
+
+                                    <td>
+
+                                        <?= htmlspecialchars(
+                                            $obra['cidade'] ?: '-'
+                                        ) ?>
+
+                                    </td>
+
+
+                                    <!-- STATUS -->
+
+                                    <td>
+
+                                        <?php if ($obra['status'] === 'ativa'): ?>
+
+                                            <span class="work-status active">
+                                                Ativa
+                                            </span>
+
+                                        <?php elseif ($obra['status'] === 'finalizada'): ?>
+
+                                            <span class="work-status finished">
+                                                Finalizada
+                                            </span>
+
+                                        <?php else: ?>
+
+                                            <span class="work-status cancelled">
+                                                Cancelada
+                                            </span>
+
+                                        <?php endif; ?>
+
+                                    </td>
+
+
+                                    <!-- CADASTRO -->
+
+                                    <td>
+
+                                        <?= date(
+                                            'd/m/Y',
+                                            strtotime($obra['created_at'])
+                                        ) ?>
+
+                                    </td>
+
+                                    <!-- AÇÕES -->
+
+                                    <td>
+
+                                        <a
+                                            href="detalhes.php?id=<?= $obra['id'] ?>"
+                                            class="work-action-button"
+                                            title="Ver detalhes da obra">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+
+                                    </td>
+
+
+                                </tr>
+
+                            <?php endforeach; ?>
+
+
+                        <?php endif; ?>
 
 
                     </tbody>
