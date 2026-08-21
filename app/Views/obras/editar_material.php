@@ -33,9 +33,20 @@ $stmt = $pdo->prepare("
         mo.codigo,
         mo.nome,
         mo.unidade,
+
         mo.quantidade,
         mo.quantidade_por_embalagem,
         mo.quantidade_total,
+
+        mo.vidro_tipo,
+        mo.vidro_espessura,
+        mo.vidro_descricao,
+        mo.vidro_largura,
+        mo.vidro_altura,
+        mo.vidro_quantidade_pecas,
+        mo.vidro_area_unitaria,
+        mo.vidro_area_total,
+
         mo.observacao,
         mo.data_entrada,
 
@@ -72,18 +83,21 @@ if (!$material) {
 
 /*
 |--------------------------------------------------------------------------
-| BLOQUEAR EDIÇÃO EM OBRA INATIVA
+| OBRA ATIVA
 |--------------------------------------------------------------------------
 */
 
 if ($material['obra_status'] !== 'ativa') {
-    die('Não é possível editar materiais de uma obra inativa.');
+
+    die(
+        'Não é possível editar materiais de uma obra inativa.'
+    );
 }
 
 
 /*
 |--------------------------------------------------------------------------
-| TOTAL DE SAÍDAS JÁ REGISTRADAS
+| TOTAL DE SAÍDAS
 |--------------------------------------------------------------------------
 */
 
@@ -98,7 +112,7 @@ $stmt = $pdo->prepare("
                 END
             ),
             0
-        ) AS total_saidas
+        )
 
     FROM movimentacoes_materiais_obra
 
@@ -158,7 +172,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     /*
     |--------------------------------------------------------------------------
-    | UNIDADES PERMITIDAS
+    | VIDRO
+    |--------------------------------------------------------------------------
+    */
+
+    $vidroTipo =
+        trim($_POST['vidro_tipo'] ?? '');
+
+    $vidroEspessura =
+        $_POST['vidro_espessura'] ?? '';
+
+    $vidroDescricao =
+        trim($_POST['vidro_descricao'] ?? '');
+
+    $vidroLargura =
+        $_POST['vidro_largura'] ?? '';
+
+    $vidroAltura =
+        $_POST['vidro_altura'] ?? '';
+
+    $vidroQuantidadePecas =
+        $_POST['vidro_quantidade_pecas'] ?? '';
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | UNIDADES
     |--------------------------------------------------------------------------
     */
 
@@ -168,20 +207,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'caixa',
         'metro',
         'kg',
-        'litro'
+        'litro',
+        'vidro'
     ];
 
 
     /*
     |--------------------------------------------------------------------------
-    | VALIDAÇÕES
+    | VALIDAÇÕES GERAIS
     |--------------------------------------------------------------------------
     */
 
     if (
         $nome === '' ||
         $unidade === '' ||
-        $quantidade === '' ||
         $data === ''
     ) {
 
@@ -200,8 +239,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'Unidade inválida.';
 
     } elseif (
-        !is_numeric($quantidade) ||
-        (float) $quantidade <= 0
+        $unidade !== 'vidro' &&
+        $quantidade === ''
+    ) {
+
+        $erro =
+            'Informe a quantidade.';
+
+    } elseif (
+        $unidade !== 'vidro' &&
+        (
+            !is_numeric($quantidade) ||
+            (float) $quantidade <= 0
+        )
     ) {
 
         $erro =
@@ -211,8 +261,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         try {
 
+            /*
+            |--------------------------------------------------------------------------
+            | QUANTIDADE PADRÃO
+            |--------------------------------------------------------------------------
+            */
+
             $quantidadeFloat =
-                (float) $quantidade;
+                $unidade === 'vidro'
+                    ? 0
+                    : (float) $quantidade;
 
 
             /*
@@ -222,6 +280,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             */
 
             if (
+                $unidade !== 'vidro' &&
                 in_array(
                     $unidade,
                     [
@@ -231,8 +290,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ],
                     true
                 ) &&
-                floor($quantidadeFloat) !=
-                $quantidadeFloat
+                floor($quantidadeFloat)
+                    != $quantidadeFloat
             ) {
 
                 throw new Exception(
@@ -243,11 +302,171 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             /*
             |--------------------------------------------------------------------------
-            | CALCULAR QUANTIDADE TOTAL
+            | RESET CAMPOS VIDRO
             |--------------------------------------------------------------------------
             */
 
-            if (
+            $vidroTipoBanco =
+                null;
+
+            $vidroEspessuraBanco =
+                null;
+
+            $vidroDescricaoBanco =
+                null;
+
+            $vidroLarguraBanco =
+                null;
+
+            $vidroAlturaBanco =
+                null;
+
+            $vidroQuantidadePecasBanco =
+                null;
+
+            $vidroAreaUnitaria =
+                null;
+
+            $vidroAreaTotal =
+                null;
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | VIDRO
+            |--------------------------------------------------------------------------
+            */
+
+            if ($unidade === 'vidro') {
+
+                if ($vidroTipo === '') {
+
+                    throw new Exception(
+                        'Informe o tipo do vidro.'
+                    );
+                }
+
+
+                if (
+                    $vidroEspessura === '' ||
+                    !is_numeric($vidroEspessura) ||
+                    (float) $vidroEspessura <= 0
+                ) {
+
+                    throw new Exception(
+                        'Informe uma espessura válida.'
+                    );
+                }
+
+
+                if (
+                    $vidroLargura === '' ||
+                    !is_numeric($vidroLargura) ||
+                    (float) $vidroLargura <= 0
+                ) {
+
+                    throw new Exception(
+                        'Informe uma largura válida.'
+                    );
+                }
+
+
+                if (
+                    $vidroAltura === '' ||
+                    !is_numeric($vidroAltura) ||
+                    (float) $vidroAltura <= 0
+                ) {
+
+                    throw new Exception(
+                        'Informe uma altura válida.'
+                    );
+                }
+
+
+                if (
+                    $vidroQuantidadePecas === '' ||
+                    !is_numeric($vidroQuantidadePecas) ||
+                    (int) $vidroQuantidadePecas <= 0 ||
+                    floor(
+                        (float) $vidroQuantidadePecas
+                    ) !=
+                    (float) $vidroQuantidadePecas
+                ) {
+
+                    throw new Exception(
+                        'Informe uma quantidade válida de peças.'
+                    );
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | CONVERSÕES
+                |--------------------------------------------------------------------------
+                */
+
+                $vidroTipoBanco =
+                    $vidroTipo;
+
+                $vidroEspessuraBanco =
+                    (float) $vidroEspessura;
+
+                $vidroDescricaoBanco =
+                    $vidroDescricao ?: null;
+
+                $vidroLarguraBanco =
+                    (float) $vidroLargura;
+
+                $vidroAlturaBanco =
+                    (float) $vidroAltura;
+
+                $vidroQuantidadePecasBanco =
+                    (int) $vidroQuantidadePecas;
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | ÁREA
+                |--------------------------------------------------------------------------
+                */
+
+                $vidroAreaUnitaria =
+                    (
+                        $vidroLarguraBanco / 1000
+                    ) *
+                    (
+                        $vidroAlturaBanco / 1000
+                    );
+
+
+                $vidroAreaTotal =
+                    $vidroAreaUnitaria *
+                    $vidroQuantidadePecasBanco;
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | CONTROLE POR PEÇAS
+                |--------------------------------------------------------------------------
+                */
+
+                $quantidadeFloat =
+                    $vidroQuantidadePecasBanco;
+
+                $quantidadePorEmbalagem =
+                    null;
+
+                $quantidadeTotalNova =
+                    $vidroQuantidadePecasBanco;
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | PACOTE / CAIXA
+            |--------------------------------------------------------------------------
+            */
+
+            } elseif (
                 $unidade === 'pacote' ||
                 $unidade === 'caixa'
             ) {
@@ -274,6 +493,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $quantidadeFloat *
                     $quantidadePorEmbalagem;
 
+
+            /*
+            |--------------------------------------------------------------------------
+            | DEMAIS
+            |--------------------------------------------------------------------------
+            */
+
             } else {
 
                 $quantidadePorEmbalagem =
@@ -286,7 +512,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             /*
             |--------------------------------------------------------------------------
-            | NÃO DEIXAR SALDO NEGATIVO
+            | VALIDAR SAÍDAS EXISTENTES
             |--------------------------------------------------------------------------
             */
 
@@ -296,14 +522,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ) {
 
                 throw new Exception(
-                    'A nova quantidade total não pode ser menor do que o total já retirado deste material.'
+                    'A nova quantidade não pode ser menor que o total já retirado deste material.'
                 );
             }
 
 
             /*
             |--------------------------------------------------------------------------
-            | VALIDAR DATA
+            | DATA
             |--------------------------------------------------------------------------
             */
 
@@ -350,36 +576,70 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     codigo = ?,
                     nome = ?,
                     unidade = ?,
+
+                    vidro_tipo = ?,
+                    vidro_espessura = ?,
+                    vidro_descricao = ?,
+                    vidro_largura = ?,
+                    vidro_altura = ?,
+                    vidro_quantidade_pecas = ?,
+                    vidro_area_unitaria = ?,
+                    vidro_area_total = ?,
+
                     quantidade = ?,
                     quantidade_por_embalagem = ?,
                     quantidade_total = ?,
+
                     observacao = ?,
                     data_entrada = ?
 
                 WHERE id = ?
             ");
 
+
             $stmt->execute([
+
                 $codigo ?: null,
+
                 $nome,
+
                 $unidade,
+
+                $vidroTipoBanco,
+
+                $vidroEspessuraBanco,
+
+                $vidroDescricaoBanco,
+
+                $vidroLarguraBanco,
+
+                $vidroAlturaBanco,
+
+                $vidroQuantidadePecasBanco,
+
+                $vidroAreaUnitaria,
+
+                $vidroAreaTotal,
+
                 $quantidadeFloat,
+
                 $quantidadePorEmbalagem,
+
                 $quantidadeTotalNova,
+
                 $observacao ?: null,
+
                 $dataBanco,
+
                 $materialId
+
             ]);
 
 
             /*
             |--------------------------------------------------------------------------
-            | ATUALIZAR MOVIMENTAÇÃO INICIAL
+            | MOVIMENTAÇÃO DE ENTRADA ORIGINAL
             |--------------------------------------------------------------------------
-            |
-            | Como a entrada inicial representa a quantidade total original
-            | desse material, ela precisa acompanhar a edição.
-            |
             */
 
             $stmt = $pdo->prepare("
@@ -417,16 +677,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ");
 
                 $stmt->execute([
+
                     $quantidadeTotalNova,
+
                     $dataBanco,
+
                     $movimentacaoEntradaId
+
                 ]);
 
             } else {
-
-                /*
-                 * Segurança para materiais antigos sem entrada inicial.
-                 */
 
                 $stmt = $pdo->prepare("
                     INSERT INTO movimentacoes_materiais_obra (
@@ -440,22 +700,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ?,
                         'entrada',
                         ?,
-                        'Entrada inicial do material na obra',
+                        ?,
                         ?
                     )
                 ");
 
                 $stmt->execute([
+
                     $materialId,
+
                     $quantidadeTotalNova,
+
+                    $unidade === 'vidro'
+                        ? 'Entrada inicial de vidro na obra'
+                        : 'Entrada inicial do material na obra',
+
                     $dataBanco
+
                 ]);
             }
 
 
             /*
             |--------------------------------------------------------------------------
-            | CONFIRMAR
+            | COMMIT
             |--------------------------------------------------------------------------
             */
 
@@ -470,11 +738,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             header(
                 'Location: detalhes.php?id=' .
-                urlencode($material['obra_id']) .
+                urlencode(
+                    $material['obra_id']
+                ) .
                 '&material=editado'
             );
 
             exit;
+
 
         } catch (PDOException $e) {
 
@@ -484,6 +755,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $erro =
                 'Erro ao atualizar material.';
+
 
         } catch (Exception $e) {
 
@@ -543,9 +815,40 @@ $valorObservacao =
 
 /*
 |--------------------------------------------------------------------------
-| HEADER
+| VIDRO
 |--------------------------------------------------------------------------
 */
+
+$valorVidroTipo =
+    $_POST['vidro_tipo']
+    ?? $material['vidro_tipo']
+    ?? '';
+
+$valorVidroEspessura =
+    $_POST['vidro_espessura']
+    ?? $material['vidro_espessura']
+    ?? '';
+
+$valorVidroDescricao =
+    $_POST['vidro_descricao']
+    ?? $material['vidro_descricao']
+    ?? '';
+
+$valorVidroLargura =
+    $_POST['vidro_largura']
+    ?? $material['vidro_largura']
+    ?? '';
+
+$valorVidroAltura =
+    $_POST['vidro_altura']
+    ?? $material['vidro_altura']
+    ?? '';
+
+$valorVidroQuantidadePecas =
+    $_POST['vidro_quantidade_pecas']
+    ?? $material['vidro_quantidade_pecas']
+    ?? '';
+
 
 include '../../Includes/header.php';
 include '../../Includes/sidebar.php';
@@ -556,9 +859,7 @@ include '../../Includes/sidebar.php';
 <main class="content">
 
 
-    <!-- =========================
-         CABEÇALHO
-    ========================== -->
+    <!-- CABEÇALHO -->
 
     <div class="page-header">
 
@@ -599,9 +900,7 @@ include '../../Includes/sidebar.php';
     </div>
 
 
-    <!-- =========================
-         ERRO
-    ========================== -->
+    <!-- ERRO -->
 
     <?php if ($erro): ?>
 
@@ -618,9 +917,7 @@ include '../../Includes/sidebar.php';
     <?php endif; ?>
 
 
-    <!-- =========================
-         AVISO DE SAÍDAS
-    ========================== -->
+    <!-- AVISO -->
 
     <?php if ($totalSaidas > 0): ?>
 
@@ -636,18 +933,22 @@ include '../../Includes/sidebar.php';
 
                 <span>
 
-                    Total já retirado:
+                    Total retirado:
 
                     <?= number_format(
                         $totalSaidas,
-                        2,
+                        0,
                         ',',
                         '.'
                     ) ?>
 
-                    un.
-
-                    A quantidade total não poderá ficar abaixo desse valor.
+                    <?=
+                        strtolower(
+                            $material['unidade']
+                        ) === 'vidro'
+                            ? ' peça(s)'
+                            : ' un'
+                    ?>.
 
                 </span>
 
@@ -658,9 +959,7 @@ include '../../Includes/sidebar.php';
     <?php endif; ?>
 
 
-    <!-- =========================
-         FORMULÁRIO
-    ========================== -->
+    <!-- FORM -->
 
     <div class="form-card">
 
@@ -684,7 +983,6 @@ include '../../Includes/sidebar.php';
                         type="text"
                         id="codigo"
                         name="codigo"
-                        placeholder="Ex: FIT-CRE-BR-LG"
                         value="<?= htmlspecialchars(
                             $valorCodigo
                         ) ?>"
@@ -728,78 +1026,47 @@ include '../../Includes/sidebar.php';
                         required
                     >
 
-                        <option value="">
-                            Selecione
-                        </option>
+                        <?php
 
+                        $unidades = [
+                            'un' => 'Unidade',
+                            'pacote' => 'Pacote',
+                            'caixa' => 'Caixa',
+                            'metro' => 'Metro',
+                            'kg' => 'Kg',
+                            'litro' => 'Litro',
+                            'vidro' => 'Vidro'
+                        ];
 
-                        <option
-                            value="un"
-                            <?= $valorUnidade === 'un'
-                                ? 'selected'
-                                : '' ?>
-                        >
-                            Unidade
-                        </option>
+                        ?>
 
+                        <?php foreach (
+                            $unidades as
+                            $valor => $texto
+                        ): ?>
 
-                        <option
-                            value="pacote"
-                            <?= $valorUnidade === 'pacote'
-                                ? 'selected'
-                                : '' ?>
-                        >
-                            Pacote
-                        </option>
+                            <option
+                                value="<?= $valor ?>"
+                                <?= $valorUnidade === $valor
+                                    ? 'selected'
+                                    : '' ?>
+                            >
+                                <?= $texto ?>
+                            </option>
 
-
-                        <option
-                            value="caixa"
-                            <?= $valorUnidade === 'caixa'
-                                ? 'selected'
-                                : '' ?>
-                        >
-                            Caixa
-                        </option>
-
-
-                        <option
-                            value="metro"
-                            <?= $valorUnidade === 'metro'
-                                ? 'selected'
-                                : '' ?>
-                        >
-                            Metro
-                        </option>
-
-
-                        <option
-                            value="kg"
-                            <?= $valorUnidade === 'kg'
-                                ? 'selected'
-                                : '' ?>
-                        >
-                            Kg
-                        </option>
-
-
-                        <option
-                            value="litro"
-                            <?= $valorUnidade === 'litro'
-                                ? 'selected'
-                                : '' ?>
-                        >
-                            Litro
-                        </option>
+                        <?php endforeach; ?>
 
                     </select>
 
                 </div>
 
 
-                <!-- QUANTIDADE -->
+                <!-- QUANTIDADE NORMAL -->
 
-                <div class="form-group">
+                <div
+                    class="form-group"
+                    id="quantidadeNormalField"
+                >
 
                     <label
                         for="quantidade"
@@ -817,7 +1084,6 @@ include '../../Includes/sidebar.php';
                         value="<?= htmlspecialchars(
                             $valorQuantidade
                         ) ?>"
-                        required
                     >
 
                 </div>
@@ -854,7 +1120,6 @@ include '../../Includes/sidebar.php';
                         class="work-destination-grid"
                         style="margin-top:16px;"
                     >
-
 
                         <div class="form-group">
 
@@ -897,10 +1162,302 @@ include '../../Includes/sidebar.php';
 
                         </div>
 
+                    </div>
+
+                </div>
+
+
+
+                <!-- =========================
+                     VIDRO
+                ========================== -->
+
+                <div
+                    class="form-group full"
+                    id="vidroFields"
+                    style="display:none;"
+                >
+
+                    <div class="glass-form-card">
+
+
+                        <div class="glass-form-header">
+
+                            <div class="glass-form-icon">
+
+                                <i class="bi bi-grid-3x3"></i>
+
+                            </div>
+
+
+                            <div>
+
+                                <strong>
+                                    Dados do vidro
+                                </strong>
+
+                                <span>
+                                    Edite o tipo, espessura, medidas e quantidade de peças.
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="glass-form-grid">
+
+
+                            <!-- TIPO -->
+
+                            <div class="form-group">
+
+                                <label for="vidro_tipo">
+                                    Tipo do vidro *
+                                </label>
+
+                                <select
+                                    id="vidro_tipo"
+                                    name="vidro_tipo"
+                                >
+
+                                    <option value="">
+                                        Selecione
+                                    </option>
+
+                                    <?php
+
+                                    $tiposVidro = [
+                                        'Temperado incolor',
+                                        'Temperado fumê',
+                                        'Temperado verde',
+
+                                        'Comum incolor',
+                                        'Comum fumê',
+                                        'Comum verde',
+
+                                        'Laminado incolor',
+                                        'Laminado fumê',
+                                        'Laminado verde'
+                                    ];
+
+                                    ?>
+
+                                    <?php foreach (
+                                        $tiposVidro as $tipo
+                                    ): ?>
+
+                                        <option
+                                            value="<?= htmlspecialchars(
+                                                $tipo
+                                            ) ?>"
+                                            <?= $valorVidroTipo === $tipo
+                                                ? 'selected'
+                                                : '' ?>
+                                        >
+                                            <?= htmlspecialchars(
+                                                $tipo
+                                            ) ?>
+                                        </option>
+
+                                    <?php endforeach; ?>
+
+                                </select>
+
+                            </div>
+
+
+                            <!-- ESPESSURA -->
+
+                            <div class="form-group">
+
+                                <label for="vidro_espessura">
+                                    Espessura *
+                                </label>
+
+                                <select
+                                    id="vidro_espessura"
+                                    name="vidro_espessura"
+                                >
+
+                                    <option value="">
+                                        Selecione
+                                    </option>
+
+                                    <?php
+
+                                    $espessuras = [
+                                        4,
+                                        6,
+                                        8,
+                                        10,
+                                        12
+                                    ];
+
+                                    ?>
+
+                                    <?php foreach (
+                                        $espessuras as $espessura
+                                    ): ?>
+
+                                        <option
+                                            value="<?= $espessura ?>"
+                                            <?= (string) $valorVidroEspessura
+                                                ===
+                                                (string) $espessura
+                                                ? 'selected'
+                                                : '' ?>
+                                        >
+                                            <?= $espessura ?> mm
+                                        </option>
+
+                                    <?php endforeach; ?>
+
+                                </select>
+
+                            </div>
+
+
+                            <!-- DESCRIÇÃO -->
+
+                            <div class="form-group full">
+
+                                <label for="vidro_descricao">
+                                    Descrição / identificação
+                                </label>
+
+                                <input
+                                    type="text"
+                                    id="vidro_descricao"
+                                    name="vidro_descricao"
+                                    value="<?= htmlspecialchars(
+                                        $valorVidroDescricao
+                                    ) ?>"
+                                    placeholder="Ex: P1, J2..."
+                                >
+
+                            </div>
+
+
+                            <!-- LARGURA -->
+
+                            <div class="form-group">
+
+                                <label for="vidro_largura">
+                                    Largura *
+                                </label>
+
+                                <div class="glass-measure-input">
+
+                                    <input
+                                        type="number"
+                                        id="vidro_largura"
+                                        name="vidro_largura"
+                                        min="1"
+                                        step="0.01"
+                                        value="<?= htmlspecialchars(
+                                            $valorVidroLargura
+                                        ) ?>"
+                                    >
+
+                                    <span>
+                                        mm
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+
+                            <!-- ALTURA -->
+
+                            <div class="form-group">
+
+                                <label for="vidro_altura">
+                                    Altura *
+                                </label>
+
+                                <div class="glass-measure-input">
+
+                                    <input
+                                        type="number"
+                                        id="vidro_altura"
+                                        name="vidro_altura"
+                                        min="1"
+                                        step="0.01"
+                                        value="<?= htmlspecialchars(
+                                            $valorVidroAltura
+                                        ) ?>"
+                                    >
+
+                                    <span>
+                                        mm
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+
+                            <!-- PEÇAS -->
+
+                            <div class="form-group">
+
+                                <label for="vidro_quantidade_pecas">
+                                    Quantidade de peças *
+                                </label>
+
+                                <input
+                                    type="number"
+                                    id="vidro_quantidade_pecas"
+                                    name="vidro_quantidade_pecas"
+                                    min="1"
+                                    step="1"
+                                    value="<?= htmlspecialchars(
+                                        $valorVidroQuantidadePecas
+                                    ) ?>"
+                                >
+
+                            </div>
+
+
+                            <!-- CÁLCULO -->
+
+                            <div class="glass-calculation">
+
+                                <div>
+
+                                    <span>
+                                        Área por peça
+                                    </span>
+
+                                    <strong id="vidroAreaUnitaria">
+                                        0,00 m²
+                                    </strong>
+
+                                </div>
+
+
+                                <div>
+
+                                    <span>
+                                        Área total
+                                    </span>
+
+                                    <strong id="vidroAreaTotal">
+                                        0,00 m²
+                                    </strong>
+
+                                </div>
+
+                            </div>
+
+                        </div>
 
                     </div>
 
                 </div>
+
 
 
                 <!-- DATA -->
@@ -936,7 +1493,6 @@ include '../../Includes/sidebar.php';
                         id="observacao"
                         name="observacao"
                         rows="4"
-                        placeholder="Opcional"
                     ><?= htmlspecialchars(
                         $valorObservacao
                     ) ?></textarea>
@@ -946,10 +1502,6 @@ include '../../Includes/sidebar.php';
 
             </div>
 
-
-            <!-- =========================
-                 AÇÕES
-            ========================== -->
 
             <div class="form-actions">
 
@@ -998,10 +1550,20 @@ document.addEventListener(
                 'quantidade'
             );
 
+        const quantidadeNormalField =
+            document.getElementById(
+                'quantidadeNormalField'
+            );
+
         const quantidadeLabel =
             document.getElementById(
                 'quantidadeLabel'
             );
+
+
+        /*
+        | EMBALAGEM
+        */
 
         const embalagemFields =
             document.getElementById(
@@ -1013,20 +1575,65 @@ document.addEventListener(
                 'quantidade_por_embalagem'
             );
 
-        const totalItens =
-            document.getElementById(
-                'totalItens'
-            );
-
         const embalagemTexto =
             document.getElementById(
                 'embalagemTexto'
             );
 
+        const totalItens =
+            document.getElementById(
+                'totalItens'
+            );
+
+
+        /*
+        | VIDRO
+        */
+
+        const vidroFields =
+            document.getElementById(
+                'vidroFields'
+            );
+
+        const vidroTipo =
+            document.getElementById(
+                'vidro_tipo'
+            );
+
+        const vidroEspessura =
+            document.getElementById(
+                'vidro_espessura'
+            );
+
+        const vidroLargura =
+            document.getElementById(
+                'vidro_largura'
+            );
+
+        const vidroAltura =
+            document.getElementById(
+                'vidro_altura'
+            );
+
+        const vidroQuantidadePecas =
+            document.getElementById(
+                'vidro_quantidade_pecas'
+            );
+
+        const vidroAreaUnitaria =
+            document.getElementById(
+                'vidroAreaUnitaria'
+            );
+
+        const vidroAreaTotal =
+            document.getElementById(
+                'vidroAreaTotal'
+            );
+
 
         /*
         |--------------------------------------------------------------------------
-        | ATUALIZAR UNIDADE
+        | UNIDADE
         |--------------------------------------------------------------------------
         */
 
@@ -1039,14 +1646,91 @@ document.addEventListener(
                 valor === 'pacote' ||
                 valor === 'caixa';
 
+            const vidro =
+                valor === 'vidro';
 
-            if (embalagem) {
+
+            /*
+            | RESET
+            */
+
+            embalagemFields.style.display =
+                'none';
+
+            vidroFields.style.display =
+                'none';
+
+            quantidadeNormalField.style.display =
+                'block';
+
+
+            quantidade.required =
+                true;
+
+            quantidadePorEmbalagem.required =
+                false;
+
+            vidroTipo.required =
+                false;
+
+            vidroEspessura.required =
+                false;
+
+            vidroLargura.required =
+                false;
+
+            vidroAltura.required =
+                false;
+
+            vidroQuantidadePecas.required =
+                false;
+
+
+            /*
+            | VIDRO
+            */
+
+            if (vidro) {
+
+                vidroFields.style.display =
+                    'block';
+
+                quantidadeNormalField.style.display =
+                    'none';
+
+                quantidade.required =
+                    false;
+
+                vidroTipo.required =
+                    true;
+
+                vidroEspessura.required =
+                    true;
+
+                vidroLargura.required =
+                    true;
+
+                vidroAltura.required =
+                    true;
+
+                vidroQuantidadePecas.required =
+                    true;
+
+
+            /*
+            | PACOTE / CAIXA
+            */
+
+            } else if (embalagem) {
 
                 embalagemFields.style.display =
                     'block';
 
-                quantidade.step = '1';
-                quantidade.min = '1';
+                quantidade.step =
+                    '1';
+
+                quantidade.min =
+                    '1';
 
                 quantidadePorEmbalagem.required =
                     true;
@@ -1070,31 +1754,33 @@ document.addEventListener(
                 }
 
 
+            /*
+            | UNIDADE
+            */
+
             } else if (valor === 'un') {
 
-                embalagemFields.style.display =
-                    'none';
+                quantidade.step =
+                    '1';
 
-                quantidade.step = '1';
-                quantidade.min = '1';
-
-                quantidadePorEmbalagem.required =
-                    false;
+                quantidade.min =
+                    '1';
 
                 quantidadeLabel.textContent =
                     'Quantidade de unidades *';
 
 
+            /*
+            | OUTRAS
+            */
+
             } else {
 
-                embalagemFields.style.display =
-                    'none';
+                quantidade.step =
+                    '0.01';
 
-                quantidade.step = '0.01';
-                quantidade.min = '0.01';
-
-                quantidadePorEmbalagem.required =
-                    false;
+                quantidade.min =
+                    '0.01';
 
                 quantidadeLabel.textContent =
                     'Quantidade *';
@@ -1102,24 +1788,22 @@ document.addEventListener(
 
 
             atualizarTotal();
+
+            calcularVidro();
         }
 
 
         /*
         |--------------------------------------------------------------------------
-        | TOTAL
+        | TOTAL EMBALAGEM
         |--------------------------------------------------------------------------
         */
 
         function atualizarTotal() {
 
-            const valorUnidade =
-                unidade.value;
-
-
             if (
-                valorUnidade !== 'pacote' &&
-                valorUnidade !== 'caixa'
+                unidade.value !== 'pacote' &&
+                unidade.value !== 'caixa'
             ) {
 
                 totalItens.textContent =
@@ -1129,14 +1813,13 @@ document.addEventListener(
             }
 
 
-            const qtd =
+            const quantidadePacotes =
                 parseInt(
                     quantidade.value || '0',
                     10
                 );
 
-
-            const porEmbalagem =
+            const itens =
                 parseInt(
                     quantidadePorEmbalagem.value
                     || '0',
@@ -1145,7 +1828,8 @@ document.addEventListener(
 
 
             const total =
-                qtd * porEmbalagem;
+                quantidadePacotes *
+                itens;
 
 
             totalItens.textContent =
@@ -1153,6 +1837,79 @@ document.addEventListener(
                     'pt-BR'
                 ) +
                 ' un';
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | VIDRO
+        |--------------------------------------------------------------------------
+        */
+
+        function calcularVidro() {
+
+            if (
+                unidade.value !== 'vidro'
+            ) {
+
+                vidroAreaUnitaria.textContent =
+                    '0,00 m²';
+
+                vidroAreaTotal.textContent =
+                    '0,00 m²';
+
+                return;
+            }
+
+
+            const largura =
+                parseFloat(
+                    vidroLargura.value || '0'
+                );
+
+            const altura =
+                parseFloat(
+                    vidroAltura.value || '0'
+                );
+
+            const pecas =
+                parseInt(
+                    vidroQuantidadePecas.value
+                    || '0',
+                    10
+                );
+
+
+            const areaUnitaria =
+                (largura / 1000) *
+                (altura / 1000);
+
+
+            const areaTotal =
+                areaUnitaria *
+                pecas;
+
+
+            vidroAreaUnitaria.textContent =
+                areaUnitaria.toLocaleString(
+                    'pt-BR',
+                    {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 4
+                    }
+                ) +
+                ' m²';
+
+
+            vidroAreaTotal.textContent =
+                areaTotal.toLocaleString(
+                    'pt-BR',
+                    {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 4
+                    }
+                ) +
+                ' m²';
         }
 
 
@@ -1167,14 +1924,34 @@ document.addEventListener(
             atualizarUnidade
         );
 
+
         quantidade.addEventListener(
             'input',
             atualizarTotal
         );
 
+
         quantidadePorEmbalagem.addEventListener(
             'input',
             atualizarTotal
+        );
+
+
+        vidroLargura.addEventListener(
+            'input',
+            calcularVidro
+        );
+
+
+        vidroAltura.addEventListener(
+            'input',
+            calcularVidro
+        );
+
+
+        vidroQuantidadePecas.addEventListener(
+            'input',
+            calcularVidro
         );
 
 

@@ -160,6 +160,15 @@ $stmt = $pdo->prepare("
         mo.observacao,
         mo.data_entrada,
 
+        mo.vidro_tipo,
+        mo.vidro_espessura,
+        mo.vidro_descricao,
+        mo.vidro_largura,
+        mo.vidro_altura,
+        mo.vidro_quantidade_pecas,
+        mo.vidro_area_unitaria,
+        mo.vidro_area_total,
+
         COALESCE(
             SUM(
                 CASE
@@ -213,7 +222,15 @@ $stmt = $pdo->prepare("
         mo.quantidade_por_embalagem,
         mo.quantidade_total,
         mo.observacao,
-        mo.data_entrada
+        mo.data_entrada,
+        mo.vidro_tipo,
+        mo.vidro_espessura,
+        mo.vidro_descricao,
+        mo.vidro_largura,
+        mo.vidro_altura,
+        mo.vidro_quantidade_pecas,
+        mo.vidro_area_unitaria,
+        mo.vidro_area_total
 
     ORDER BY
         mo.data_entrada DESC,
@@ -353,7 +370,8 @@ function formatarQuantidadeObra(
             [
                 'un',
                 'pacote',
-                'caixa'
+                'caixa',
+                'vidro'
             ],
             true
         )
@@ -532,11 +550,9 @@ include '../../Includes/sidebar.php';
 
                 <strong>
 
-                    <?= number_format(
+                    <?= formatarQuantidadeObra(
                         $totalRecebidoObra,
-                        2,
-                        ',',
-                        '.'
+                        'un'
                     ) ?>
 
                 </strong>
@@ -566,11 +582,9 @@ include '../../Includes/sidebar.php';
 
                 <strong>
 
-                    <?= number_format(
+                    <?= formatarQuantidadeObra(
                         $totalRetiradoObra,
-                        2,
-                        ',',
-                        '.'
+                        'un'
                     ) ?>
 
                 </strong>
@@ -600,11 +614,9 @@ include '../../Includes/sidebar.php';
 
                 <strong>
 
-                    <?= number_format(
+                    <?= formatarQuantidadeObra(
                         $totalSaldoObra,
-                        2,
-                        ',',
-                        '.'
+                        'un'
                     ) ?>
 
                 </strong>
@@ -797,28 +809,35 @@ include '../../Includes/sidebar.php';
 
             <div>
 
-                <h2>
-                    Materiais da obra
-                </h2>
+                <div class="obra-materials-header">
 
-                <p>
-                    Materiais separados do estoque e materiais recebidos diretamente para esta obra.
-                </p>
+                    <div>
+                        <h2>Materiais da obra</h2>
+
+                        <p>
+                            Materiais separados do estoque e materiais recebidos diretamente para esta obra.
+                        </p>
+                    </div>
+
+                    <?php if ($obra['status'] === 'ativa'): ?>
+
+                        <a
+                            href="adicionar_material.php?obra_id=<?= $obraId ?>"
+                            class="btn-add-material">
+                            <i class="bi bi-plus-lg"></i>
+                            Adicionar material
+                        </a>
+
+                    <?php endif; ?>
+
+                </div>
 
             </div>
 
 
             <?php if ($obra['status'] === 'ativa'): ?>
 
-                <a
-                    href="adicionar_material.php?obra_id=<?= $obra['id'] ?>"
-                    class="btn-primary">
-
-                    <i class="bi bi-plus-lg"></i>
-
-                    Adicionar material
-
-                </a>
+                
 
             <?php endif; ?>
 
@@ -1090,7 +1109,7 @@ include '../../Includes/sidebar.php';
 
                             <th>Saldo</th>
 
-                            <th>Embalagem</th>
+                            <th>Detalhes</th>
 
                             <th>Origem</th>
 
@@ -1121,6 +1140,9 @@ include '../../Includes/sidebar.php';
                                 $unidade === 'pacote' ||
                                 $unidade === 'caixa';
 
+                            $vidro =
+                                $unidade === 'vidro';
+
                             $saldoDireto =
                                 (float) $material['saldo'];
 
@@ -1138,7 +1160,11 @@ include '../../Includes/sidebar.php';
 
                                         <div class="product-icon">
 
+                                            <?php if ($vidro): ?>
+                                            <i class="bi bi-grid-3x3"></i>
+                                        <?php else: ?>
                                             <i class="bi bi-box"></i>
+                                        <?php endif; ?>
 
                                         </div>
 
@@ -1163,6 +1189,35 @@ include '../../Includes/sidebar.php';
 
                                             </small>
 
+
+                                            <?php if ($vidro): ?>
+
+                                                <small class="glass-material-subtitle">
+                                                    <?= htmlspecialchars(
+                                                        $material['vidro_tipo']
+                                                            ?: 'Vidro'
+                                                    ) ?>
+
+                                                    <?php if ($material['vidro_espessura'] !== null): ?>
+                                                        • <?= number_format(
+                                                            (float) $material['vidro_espessura'],
+                                                            0,
+                                                            ',',
+                                                            '.'
+                                                        ) ?> mm
+                                                    <?php endif; ?>
+                                                </small>
+
+                                                <?php if ($material['vidro_descricao']): ?>
+                                                    <small class="glass-material-description">
+                                                        <?= htmlspecialchars(
+                                                            $material['vidro_descricao']
+                                                        ) ?>
+                                                    </small>
+                                                <?php endif; ?>
+
+                                            <?php endif; ?>
+
                                         </div>
 
                                     </div>
@@ -1178,12 +1233,16 @@ include '../../Includes/sidebar.php';
 
                                     <?= formatarQuantidadeObra(
                                         $material['total_entradas'],
-                                        $embalagem
+                                        ($embalagem || $vidro)
                                             ? 'un'
                                             : $material['unidade']
                                     ) ?>
 
-                                    <?php if ($embalagem): ?>
+                                    <?php if ($vidro): ?>
+
+                                        peça(s)
+
+                                    <?php elseif ($embalagem): ?>
 
                                         un
 
@@ -1206,12 +1265,16 @@ include '../../Includes/sidebar.php';
 
                                     <?= formatarQuantidadeObra(
                                         $material['total_saidas'],
-                                        $embalagem
+                                        ($embalagem || $vidro)
                                             ? 'un'
                                             : $material['unidade']
                                     ) ?>
 
-                                    <?php if ($embalagem): ?>
+                                    <?php if ($vidro): ?>
+
+                                        peça(s)
+
+                                    <?php elseif ($embalagem): ?>
 
                                         un
 
@@ -1237,12 +1300,16 @@ include '../../Includes/sidebar.php';
 
                                         <?= formatarQuantidadeObra(
                                             $saldoDireto,
-                                            $embalagem
+                                            ($embalagem || $vidro)
                                                 ? 'un'
                                                 : $material['unidade']
                                         ) ?>
 
-                                        <?php if ($embalagem): ?>
+                                        <?php if ($vidro): ?>
+
+                                            peça(s)
+
+                                        <?php elseif ($embalagem): ?>
 
                                             un
 
@@ -1263,7 +1330,62 @@ include '../../Includes/sidebar.php';
 
                                 <td>
 
-                                    <?php if ($embalagem): ?>
+                                    <?php if ($vidro): ?>
+
+                                        <?php
+                                        $areaUnitariaVidro =
+                                            (float) ($material['vidro_area_unitaria'] ?? 0);
+
+                                        $areaSaldoVidro =
+                                            $areaUnitariaVidro * $saldoDireto;
+                                        ?>
+
+                                        <div class="glass-material-details">
+
+                                            <div class="glass-material-measure">
+                                                <i class="bi bi-arrows-angle-expand"></i>
+
+                                                <strong>
+                                                    <?= number_format(
+                                                        (float) $material['vidro_largura'],
+                                                        0,
+                                                        ',',
+                                                        '.'
+                                                    ) ?>
+                                                    ×
+                                                    <?= number_format(
+                                                        (float) $material['vidro_altura'],
+                                                        0,
+                                                        ',',
+                                                        '.'
+                                                    ) ?> mm
+                                                </strong>
+                                            </div>
+
+                                            <small>
+                                                Saldo:
+                                                <strong>
+                                                    <?= number_format(
+                                                        $saldoDireto,
+                                                        0,
+                                                        ',',
+                                                        '.'
+                                                    ) ?> peça(s)
+                                                </strong>
+                                                •
+                                                <strong>
+                                                    <?= number_format(
+                                                        $areaSaldoVidro,
+                                                        2,
+                                                        ',',
+                                                        '.'
+                                                    ) ?> m²
+                                                </strong>
+                                            </small>
+
+                                        </div>
+
+                                    <?php elseif ($embalagem): ?>
 
                                         <div class="movement-product-info">
 
@@ -1379,6 +1501,36 @@ include '../../Includes/sidebar.php';
 
                                             <?php endif; ?>
 
+
+                                            <!-- EXCLUIR -->
+
+                                            <form
+                                                action="excluir_material.php"
+                                                method="POST"
+                                                style="margin:0;"
+                                                class="delete-material-form">
+
+                                                <input
+                                                    type="hidden"
+                                                    name="id"
+                                                    value="<?= $material['id'] ?>">
+
+                                                <button
+                                                    type="button"
+                                                    class="movement-detail-button material-delete-button open-delete-modal"
+                                                    title="Excluir material"
+                                                    data-material-id="<?= $material['id'] ?>"
+                                                    data-material-name="<?= htmlspecialchars(
+                                                                            $material['nome'],
+                                                                            ENT_QUOTES
+                                                                        ) ?>">
+
+                                                    <i class="bi bi-trash"></i>
+
+                                                </button>
+
+                                            </form>
+
                                         <?php else: ?>
 
                                             <span class="stock-zero">
@@ -1436,6 +1588,38 @@ include '../../Includes/sidebar.php';
         <?php endif; ?>
 
 
+        <?php if (
+            isset($_GET['material']) &&
+            $_GET['material'] === 'excluido'
+        ): ?>
+
+            <div class="alert-success">
+
+                <i class="bi bi-check-circle"></i>
+
+                Material excluído da obra com sucesso!
+
+            </div>
+
+        <?php endif; ?>
+
+
+        <?php if (
+            isset($_GET['material']) &&
+            $_GET['material'] === 'erro_excluir'
+        ): ?>
+
+            <div class="alert-error">
+
+                <i class="bi bi-exclamation-circle"></i>
+
+                Não foi possível excluir o material.
+
+            </div>
+
+        <?php endif; ?>
+
+
 
         <!-- =========================
              NENHUM MATERIAL
@@ -1460,7 +1644,279 @@ include '../../Includes/sidebar.php';
     </section>
 
 
+    <!-- =========================
+     MODAL EXCLUIR MATERIAL
+========================= -->
+
+    <div
+        class="delete-modal-overlay"
+        id="deleteMaterialModal">
+
+        <div class="delete-modal">
+
+            <button
+                type="button"
+                class="delete-modal-close"
+                id="closeDeleteModal">
+                <i class="bi bi-x-lg"></i>
+            </button>
+
+
+            <div class="delete-modal-icon">
+
+                <i class="bi bi-trash3"></i>
+
+            </div>
+
+
+            <h2>
+                Excluir material da obra?
+            </h2>
+
+
+            <p class="delete-modal-description">
+
+                Deseja realmente excluir
+
+                <strong id="deleteMaterialName">
+                    este material
+                </strong>
+
+                da obra?
+
+                <br>
+
+                Todo o histórico de entradas e saídas deste item
+                também será excluído.
+
+            </p>
+
+
+            <div class="delete-modal-warning">
+
+                <i class="bi bi-exclamation-triangle"></i>
+
+                <div>
+
+                    <strong>
+                        Atenção
+                    </strong>
+
+                    <span>
+                        Esta ação não pode ser desfeita.
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <div class="delete-modal-actions">
+
+                <button
+                    type="button"
+                    class="btn-secondary"
+                    id="cancelDeleteModal">
+                    Cancelar
+                </button>
+
+
+                <button
+                    type="button"
+                    class="btn-delete-confirm"
+                    id="confirmDeleteMaterial">
+
+                    <i class="bi bi-trash3"></i>
+
+                    Sim, excluir material
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
 </main>
+
+<script>
+    document.addEventListener(
+        'DOMContentLoaded',
+        function() {
+
+            const modal =
+                document.getElementById(
+                    'deleteMaterialModal'
+                );
+
+            const materialName =
+                document.getElementById(
+                    'deleteMaterialName'
+                );
+
+            const confirmButton =
+                document.getElementById(
+                    'confirmDeleteMaterial'
+                );
+
+            const cancelButton =
+                document.getElementById(
+                    'cancelDeleteModal'
+                );
+
+            const closeButton =
+                document.getElementById(
+                    'closeDeleteModal'
+                );
+
+            const openButtons =
+                document.querySelectorAll(
+                    '.open-delete-modal'
+                );
+
+
+            let formToSubmit = null;
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | ABRIR MODAL
+            |--------------------------------------------------------------------------
+            */
+
+            openButtons.forEach(
+                function(button) {
+
+                    button.addEventListener(
+                        'click',
+                        function() {
+
+                            formToSubmit =
+                                this.closest(
+                                    '.delete-material-form'
+                                );
+
+                            const nome =
+                                this.dataset.materialName;
+
+                            materialName.textContent =
+                                nome || 'este material';
+
+                            modal.classList.add(
+                                'active'
+                            );
+
+                            document.body.style.overflow =
+                                'hidden';
+
+                        }
+                    );
+
+                }
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | FECHAR
+            |--------------------------------------------------------------------------
+            */
+
+            function fecharModal() {
+
+                modal.classList.remove(
+                    'active'
+                );
+
+                document.body.style.overflow =
+                    '';
+
+                formToSubmit = null;
+            }
+
+
+            cancelButton.addEventListener(
+                'click',
+                fecharModal
+            );
+
+            closeButton.addEventListener(
+                'click',
+                fecharModal
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | CLICAR FORA
+            |--------------------------------------------------------------------------
+            */
+
+            modal.addEventListener(
+                'click',
+                function(event) {
+
+                    if (event.target === modal) {
+                        fecharModal();
+                    }
+
+                }
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | ESC
+            |--------------------------------------------------------------------------
+            */
+
+            document.addEventListener(
+                'keydown',
+                function(event) {
+
+                    if (
+                        event.key === 'Escape' &&
+                        modal.classList.contains(
+                            'active'
+                        )
+                    ) {
+
+                        fecharModal();
+                    }
+
+                }
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | CONFIRMAR EXCLUSÃO
+            |--------------------------------------------------------------------------
+            */
+
+            confirmButton.addEventListener(
+                'click',
+                function() {
+
+                    if (!formToSubmit) {
+                        return;
+                    }
+
+                    confirmButton.disabled =
+                        true;
+
+                    confirmButton.innerHTML =
+                        '<i class="bi bi-hourglass-split"></i> Excluindo...';
+
+                    formToSubmit.submit();
+
+                }
+            );
+
+        }
+    );
+</script>
 
 
 <?php include '../../Includes/footer.php'; ?>

@@ -146,3 +146,20 @@
     }
 
 }
+
+.client-actions {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.client-delete-button {
+    border: 1px solid #dbe4f3;
+    cursor: pointer;
+}
+
+.client-delete-button:hover {
+    background: #fff1f1;
+    border-color: #fecaca;
+    color: #c90000;
+}

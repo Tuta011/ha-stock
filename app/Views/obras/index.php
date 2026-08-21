@@ -12,9 +12,14 @@ $erro = '';
 */
 
 $stmt = $pdo->query("
-    SELECT id, nome
+    SELECT
+        id,
+        nome
+
     FROM clientes
+
     WHERE ativo = 1
+
     ORDER BY nome ASC
 ");
 
@@ -29,49 +34,125 @@ $clientes = $stmt->fetchAll();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $clienteId = $_POST['cliente_id'] ?? '';
-    $codigo = trim($_POST['codigo'] ?? '');
-    $nome = trim($_POST['nome'] ?? '');
-    $endereco = trim($_POST['endereco'] ?? '');
-    $cidade = trim($_POST['cidade'] ?? '');
-    $observacoes = trim($_POST['observacoes'] ?? '');
+    $clienteId =
+        $_POST['cliente_id'] ?? '';
+
+    $codigo =
+        trim($_POST['codigo'] ?? '');
+
+    $nome =
+        trim($_POST['nome'] ?? '');
+
+    $endereco =
+        trim($_POST['endereco'] ?? '');
+
+    $cidade =
+        trim($_POST['cidade'] ?? '');
+
+    $observacoes =
+        trim($_POST['observacoes'] ?? '');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | VALIDAÇÕES
+    |--------------------------------------------------------------------------
+    */
 
     if (
         $clienteId === '' ||
         $nome === ''
     ) {
 
-        $erro = 'Informe o cliente e o nome da obra.';
+        $erro =
+            'Informe o cliente e o nome da obra.';
+
     } else {
 
         try {
 
+            /*
+            |--------------------------------------------------------------------------
+            | VALIDAR CLIENTE
+            |--------------------------------------------------------------------------
+            */
+
             $stmt = $pdo->prepare("
-                INSERT INTO obras (
-                    cliente_id,
-                    codigo,
-                    nome,
-                    endereco,
-                    cidade,
-                    observacoes
-                )
-                VALUES (?, ?, ?, ?, ?, ?)
+                SELECT id
+
+                FROM clientes
+
+                WHERE
+                    id = ?
+                    AND ativo = 1
+
+                LIMIT 1
             ");
 
             $stmt->execute([
-                $clienteId,
-                $codigo ?: null,
-                $nome,
-                $endereco ?: null,
-                $cidade ?: null,
-                $observacoes ?: null
+                $clienteId
             ]);
 
-            header('Location: index.php?sucesso=1');
-            exit;
+
+            if (!$stmt->fetchColumn()) {
+
+                $erro =
+                    'Cliente inválido ou inativo.';
+
+            } else {
+
+                /*
+                |--------------------------------------------------------------------------
+                | INSERIR OBRA
+                |--------------------------------------------------------------------------
+                */
+
+                $stmt = $pdo->prepare("
+                    INSERT INTO obras (
+                        cliente_id,
+                        codigo,
+                        nome,
+                        endereco,
+                        cidade,
+                        observacoes
+                    )
+                    VALUES (
+                        ?,
+                        ?,
+                        ?,
+                        ?,
+                        ?,
+                        ?
+                    )
+                ");
+
+                $stmt->execute([
+                    $clienteId,
+                    $codigo ?: null,
+                    $nome,
+                    $endereco ?: null,
+                    $cidade ?: null,
+                    $observacoes ?: null
+                ]);
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | SUCESSO
+                |--------------------------------------------------------------------------
+                */
+
+                header(
+                    'Location: index.php?sucesso=1'
+                );
+
+                exit;
+            }
+
         } catch (PDOException $e) {
 
-            $erro = 'Erro ao cadastrar obra.';
+            $erro =
+                'Erro ao cadastrar obra.';
         }
     }
 }
@@ -109,6 +190,12 @@ $stmt = $pdo->query("
 $obras = $stmt->fetchAll();
 
 
+/*
+|--------------------------------------------------------------------------
+| HEADER
+|--------------------------------------------------------------------------
+*/
+
 include '../../Includes/header.php';
 include '../../Includes/sidebar.php';
 
@@ -117,15 +204,32 @@ include '../../Includes/sidebar.php';
 
 <main class="content">
 
+
+    <!-- =========================
+         CABEÇALHO
+    ========================== -->
+
     <div class="page-header">
 
         <div>
-            <h1>Obras</h1>
-            <p>Gerencie as obras e os materiais destinados a cada cliente.</p>
+
+            <h1>
+                Obras
+            </h1>
+
+            <p>
+                Gerencie as obras e os materiais destinados a cada cliente.
+            </p>
+
         </div>
 
     </div>
 
+
+
+    <!-- =========================
+         SUCESSO - CADASTRO
+    ========================== -->
 
     <?php if (isset($_GET['sucesso'])): ?>
 
@@ -140,6 +244,29 @@ include '../../Includes/sidebar.php';
     <?php endif; ?>
 
 
+
+    <!-- =========================
+         SUCESSO - EDIÇÃO
+    ========================== -->
+
+    <?php if (isset($_GET['editado'])): ?>
+
+        <div class="alert-success">
+
+            <i class="bi bi-check-circle"></i>
+
+            Obra atualizada com sucesso!
+
+        </div>
+
+    <?php endif; ?>
+
+
+
+    <!-- =========================
+         ERRO
+    ========================== -->
+
     <?php if ($erro): ?>
 
         <div class="alert-error">
@@ -153,6 +280,7 @@ include '../../Includes/sidebar.php';
     <?php endif; ?>
 
 
+
     <div class="works-layout">
 
 
@@ -162,7 +290,9 @@ include '../../Includes/sidebar.php';
 
         <section class="work-form-card">
 
-            <h2>Nova obra</h2>
+            <h2>
+                Nova obra
+            </h2>
 
             <p>
                 Vincule uma nova obra a um cliente cadastrado.
@@ -183,7 +313,8 @@ include '../../Includes/sidebar.php';
                     <select
                         id="cliente_id"
                         name="cliente_id"
-                        required>
+                        required
+                    >
 
                         <option value="">
                             Selecione o cliente
@@ -192,7 +323,16 @@ include '../../Includes/sidebar.php';
 
                         <?php foreach ($clientes as $cliente): ?>
 
-                            <option value="<?= $cliente['id'] ?>">
+                            <option
+                                value="<?= $cliente['id'] ?>"
+
+                                <?= (
+                                    ($_POST['cliente_id'] ?? '')
+                                    == $cliente['id']
+                                )
+                                    ? 'selected'
+                                    : '' ?>
+                            >
 
                                 <?= htmlspecialchars(
                                     $cliente['nome']
@@ -207,6 +347,7 @@ include '../../Includes/sidebar.php';
                 </div>
 
 
+
                 <!-- CÓDIGO -->
 
                 <div class="form-group">
@@ -219,9 +360,14 @@ include '../../Includes/sidebar.php';
                         type="text"
                         id="codigo"
                         name="codigo"
-                        placeholder="Ex: OBR001">
+                        placeholder="Ex: OBR001"
+                        value="<?= htmlspecialchars(
+                            $_POST['codigo'] ?? ''
+                        ) ?>"
+                    >
 
                 </div>
+
 
 
                 <!-- NOME -->
@@ -237,9 +383,14 @@ include '../../Includes/sidebar.php';
                         id="nome"
                         name="nome"
                         placeholder="Ex: Residência Alphaville"
-                        required>
+                        value="<?= htmlspecialchars(
+                            $_POST['nome'] ?? ''
+                        ) ?>"
+                        required
+                    >
 
                 </div>
+
 
 
                 <!-- ENDEREÇO -->
@@ -254,9 +405,14 @@ include '../../Includes/sidebar.php';
                         type="text"
                         id="endereco"
                         name="endereco"
-                        placeholder="Rua, número, bairro...">
+                        placeholder="Rua, número, bairro..."
+                        value="<?= htmlspecialchars(
+                            $_POST['endereco'] ?? ''
+                        ) ?>"
+                    >
 
                 </div>
+
 
 
                 <!-- CIDADE -->
@@ -271,9 +427,14 @@ include '../../Includes/sidebar.php';
                         type="text"
                         id="cidade"
                         name="cidade"
-                        placeholder="Ex: São Paulo">
+                        placeholder="Ex: São Paulo"
+                        value="<?= htmlspecialchars(
+                            $_POST['cidade'] ?? ''
+                        ) ?>"
+                    >
 
                 </div>
+
 
 
                 <!-- OBSERVAÇÕES -->
@@ -288,14 +449,21 @@ include '../../Includes/sidebar.php';
                         id="observacoes"
                         name="observacoes"
                         rows="4"
-                        placeholder="Informações adicionais sobre a obra..."></textarea>
+                        placeholder="Informações adicionais sobre a obra..."
+                    ><?= htmlspecialchars(
+                        $_POST['observacoes'] ?? ''
+                    ) ?></textarea>
 
                 </div>
 
 
+
+                <!-- BOTÃO -->
+
                 <button
                     type="submit"
-                    class="btn-primary work-submit">
+                    class="btn-primary work-submit"
+                >
 
                     <i class="bi bi-plus-lg"></i>
 
@@ -308,6 +476,7 @@ include '../../Includes/sidebar.php';
         </section>
 
 
+
         <!-- =========================
              LISTAGEM
         ========================== -->
@@ -318,7 +487,9 @@ include '../../Includes/sidebar.php';
 
                 <div>
 
-                    <h2>Obras cadastradas</h2>
+                    <h2>
+                        Obras cadastradas
+                    </h2>
 
                     <p>
                         <?= count($obras) ?>
@@ -337,12 +508,31 @@ include '../../Includes/sidebar.php';
                     <thead>
 
                         <tr>
-                            <th>Obra</th>
-                            <th>Cliente</th>
-                            <th>Cidade</th>
-                            <th>Status</th>
-                            <th>Cadastro</th>
-                            <th>Ações</th>
+
+                            <th>
+                                Obra
+                            </th>
+
+                            <th>
+                                Cliente
+                            </th>
+
+                            <th>
+                                Cidade
+                            </th>
+
+                            <th>
+                                Status
+                            </th>
+
+                            <th>
+                                Cadastro
+                            </th>
+
+                            <th>
+                                Ações
+                            </th>
+
                         </tr>
 
                     </thead>
@@ -351,152 +541,198 @@ include '../../Includes/sidebar.php';
                     <tbody>
 
 
-                        <?php if (empty($obras)): ?>
+                    <?php if (empty($obras)): ?>
+
+                        <tr>
+
+                            <td
+                                colspan="6"
+                                class="empty-table"
+                            >
+
+                                Nenhuma obra cadastrada.
+
+                            </td>
+
+                        </tr>
+
+
+                    <?php else: ?>
+
+
+                        <?php foreach ($obras as $obra): ?>
 
                             <tr>
 
-                                <td
-                                    colspan="6"
-                                    class="empty-table">
 
-                                    Nenhuma obra cadastrada.
+                                <!-- OBRA -->
 
-                                </td>
+                                <td>
 
-                            </tr>
+                                    <div class="work-name">
 
+                                        <div class="work-icon">
 
-                        <?php else: ?>
-
-
-                            <?php foreach ($obras as $obra): ?>
-
-                                <tr>
-
-
-                                    <!-- OBRA -->
-
-                                    <td>
-
-                                        <div class="work-name">
-
-                                            <div class="work-icon">
-
-                                                <i class="bi bi-building"></i>
-
-                                            </div>
-
-
-                                            <div>
-
-                                                <strong>
-
-                                                    <?= htmlspecialchars(
-                                                        $obra['nome']
-                                                    ) ?>
-
-                                                </strong>
-
-
-                                                <?php if ($obra['codigo']): ?>
-
-                                                    <small>
-
-                                                        <?= htmlspecialchars(
-                                                            $obra['codigo']
-                                                        ) ?>
-
-                                                    </small>
-
-                                                <?php endif; ?>
-
-                                            </div>
+                                            <i class="bi bi-building"></i>
 
                                         </div>
 
-                                    </td>
+
+                                        <div>
+
+                                            <strong>
+
+                                                <?= htmlspecialchars(
+                                                    $obra['nome']
+                                                ) ?>
+
+                                            </strong>
 
 
-                                    <!-- CLIENTE -->
+                                            <?php if ($obra['codigo']): ?>
 
-                                    <td>
+                                                <small>
 
-                                        <?= htmlspecialchars(
-                                            $obra['cliente']
-                                        ) ?>
+                                                    <?= htmlspecialchars(
+                                                        $obra['codigo']
+                                                    ) ?>
 
-                                    </td>
+                                                </small>
 
+                                            <?php endif; ?>
 
-                                    <!-- CIDADE -->
+                                        </div>
 
-                                    <td>
+                                    </div>
 
-                                        <?= htmlspecialchars(
-                                            $obra['cidade'] ?: '-'
-                                        ) ?>
-
-                                    </td>
+                                </td>
 
 
-                                    <!-- STATUS -->
 
-                                    <td>
+                                <!-- CLIENTE -->
 
-                                        <?php if ($obra['status'] === 'ativa'): ?>
+                                <td>
 
-                                            <span class="work-status active">
-                                                Ativa
-                                            </span>
+                                    <?= htmlspecialchars(
+                                        $obra['cliente']
+                                    ) ?>
 
-                                        <?php elseif ($obra['status'] === 'finalizada'): ?>
-
-                                            <span class="work-status finished">
-                                                Finalizada
-                                            </span>
-
-                                        <?php else: ?>
-
-                                            <span class="work-status cancelled">
-                                                Cancelada
-                                            </span>
-
-                                        <?php endif; ?>
-
-                                    </td>
+                                </td>
 
 
-                                    <!-- CADASTRO -->
 
-                                    <td>
+                                <!-- CIDADE -->
 
-                                        <?= date(
-                                            'd/m/Y',
-                                            strtotime($obra['created_at'])
-                                        ) ?>
+                                <td>
 
-                                    </td>
+                                    <?= htmlspecialchars(
+                                        $obra['cidade']
+                                        ?: '-'
+                                    ) ?>
 
-                                    <!-- AÇÕES -->
+                                </td>
 
-                                    <td>
+
+
+                                <!-- STATUS -->
+
+                                <td>
+
+                                    <?php if (
+                                        $obra['status'] === 'ativa'
+                                    ): ?>
+
+                                        <span class="work-status active">
+
+                                            Ativa
+
+                                        </span>
+
+
+                                    <?php elseif (
+                                        $obra['status'] === 'finalizada'
+                                    ): ?>
+
+                                        <span class="work-status finished">
+
+                                            Finalizada
+
+                                        </span>
+
+
+                                    <?php else: ?>
+
+                                        <span class="work-status cancelled">
+
+                                            Cancelada
+
+                                        </span>
+
+                                    <?php endif; ?>
+
+                                </td>
+
+
+
+                                <!-- CADASTRO -->
+
+                                <td>
+
+                                    <?= date(
+                                        'd/m/Y',
+                                        strtotime(
+                                            $obra['created_at']
+                                        )
+                                    ) ?>
+
+                                </td>
+
+
+
+                                <!-- AÇÕES -->
+
+                                <td>
+
+                                    <div class="work-actions">
+
+
+                                        <!-- VISUALIZAR -->
 
                                         <a
                                             href="detalhes.php?id=<?= $obra['id'] ?>"
                                             class="work-action-button"
-                                            title="Ver detalhes da obra">
+                                            title="Ver detalhes da obra"
+                                        >
+
                                             <i class="bi bi-eye"></i>
+
                                         </a>
 
-                                    </td>
+
+                                        <!-- EDITAR -->
+
+                                        <a
+                                            href="editar.php?id=<?= $obra['id'] ?>"
+                                            class="work-action-button"
+                                            title="Editar obra"
+                                        >
+
+                                            <i class="bi bi-pencil"></i>
+
+                                        </a>
 
 
-                                </tr>
+                                    </div>
 
-                            <?php endforeach; ?>
+                                </td>
 
 
-                        <?php endif; ?>
+                            </tr>
+
+                        <?php endforeach; ?>
+
+
+                    <?php endif; ?>
 
 
                     </tbody>
